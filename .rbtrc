@@ -1,0 +1,7 @@
+protoc api/
+protoc --nodejs=api/
+
+dev run --name=cheaoss
+dev run --watch=backend/src/**/*.ts
+dev run --nodejs
+dev run --application=backend/src/main.ts

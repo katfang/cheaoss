@@ -1,0 +1,6 @@
+# node stuff
+node_modules
+
+# reboot stuff
+/.rbt/
+api/rbt
