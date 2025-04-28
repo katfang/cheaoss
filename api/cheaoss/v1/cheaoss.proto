@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package cheaoss.v1;
+
+import "rbt/v1alpha1/options.proto";
+
+enum Team {
+    WHITE = 0;
+    BLACK = 1;
+} 
+
+message Cheaoss {
+    option (rbt.v1alpha1.state) = {};
+    Team nextTeamAssignment = 1;    
+}
+
+service CheaossMethods {
+    rpc AssignTeam(AssignTeamRequest) returns (AssignTeamResponse) {
+        option (rbt.v1alpha1.method).writer = {};
+    }
+}
+
+message AssignTeamRequest {}
+
+message AssignTeamResponse {
+    Team team = 1; 
+}
