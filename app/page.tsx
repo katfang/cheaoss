@@ -1,6 +1,7 @@
 "use client";
 import { useHello } from "../api/hello/v1/hello_rbt_react";
-import GameMeta from "./GameMeta";
+import CheaossMeta from "./CheaossMeta";
+import CheaossBoard from "./CheaossBoard";
 
 export default function Home() {
   const { useMessages } = useHello({id: "reboot-hello"});
@@ -15,8 +16,13 @@ export default function Home() {
   );
 
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <GameMeta gameId="singleton" />
+    <div className="grid grid-cols-[1fr_1fr] grid-rows-[20px_1fr] items-center justify-items-center min-h-screen p-8 gap-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+      <div className="w-full col-span-2 bg-gray-500 p-4">
+        <CheaossMeta gameId="singleton" />
+      </div>
+      <div className="w-full h-full bg-gray-500 p-4">
+        <CheaossBoard gameId="singleton" />
+      </div>
       {allMessages} 
     </div>
   );

@@ -5,6 +5,13 @@
   --foreground: #171717;
 }
 
+@theme {
+  --color-white-square: #ecd4b0;
+  --color-black-square: #ad9065;
+  --color-white-piece: #ffffff;
+  --color-black-piece: #000000;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

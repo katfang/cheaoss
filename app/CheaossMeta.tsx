@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useCheaoss, Team } from "../api/cheaoss/v1/cheaoss_rbt_react";
 import Error from "./Error";
 
-export default function GameMeta({ gameId } : { gameId: string }) {
+export default function CheaossMeta({ gameId } : { gameId: string }) {
   const { assignTeam } = useCheaoss({id: gameId});
   let [team, setTeam] = useState(Team.WHITE);
 
@@ -22,6 +22,6 @@ export default function GameMeta({ gameId } : { gameId: string }) {
   }, []);
 
   return (
-    <div>Assigned to team {Team[team]}.</div>
+    <div className="w-full text-right">Assigned to team {Team[team]}.</div>
   );
 }
