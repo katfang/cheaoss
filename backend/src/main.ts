@@ -13,7 +13,7 @@ const initialize = async (context: ExternalContext) => {
 
   const cheaoss = Cheaoss.ref("singleton");
   const cheaossResponse = await cheaoss
-    .unidempotently()
+    .idempotently()
     .assignTeam(context);
   console.log(cheaossResponse);
 };

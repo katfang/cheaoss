@@ -1,21 +1,10 @@
 "use client";
-import Image from "next/image";
-import { useEffect } from "react";
 import { useHello } from "../api/hello/v1/hello_rbt_react";
-import { useCheaoss } from "../api/cheaoss/v1/cheaoss_rbt_react";
+import GameMeta from "./GameMeta";
 
 export default function Home() {
-  const { assignTeam } = useCheaoss({id: "singleton"});
-  const { useMessages, send } = useHello({id: "reboot-hello"});
+  const { useMessages } = useHello({id: "reboot-hello"});
   const { response } = useMessages();
-
-  useEffect(() => {
-    async function fetchTeamAssignment() {
-      const res = await assignTeam({});
-      console.log(res);
-    }
-    fetchTeamAssignment();
-  }, []);
 
   if (response === undefined) {
     return "Absolute failure";
@@ -27,6 +16,7 @@ export default function Home() {
 
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+      <GameMeta gameId="singleton" />
       {allMessages} 
     </div>
   );

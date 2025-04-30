@@ -12,6 +12,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
     state: Cheaoss.State,
     request: AssignTeamRequest 
   ) {
+    console.log("team assignment", state.nextTeamAssignment);
     const teamAssignment = state.nextTeamAssignment; 
     state.nextTeamAssignment = (teamAssignment + 1) % 2;
     return { team: teamAssignment };
