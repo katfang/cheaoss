@@ -25,34 +25,79 @@ export class CheaossServicer extends Cheaoss.Servicer {
     return { team: team };
   }
 
+  initialBoardPieces(
+    stateId: string,
+    startingRow: number,
+    startingCol: number,
+  ): { [key:string]: Uint8Array} {
+    let entries: { [key:string] : Uint8Array } = {}; // ??? how do I actually do this creation & setting
+    let backRow: PieceType[] = [
+      PieceType.ROOK,
+      PieceType.KNIGHT,
+      PieceType.BISHOP,
+      PieceType.QUEEN,
+      PieceType.KING,
+      PieceType.BISHOP,
+      PieceType.KNIGHT,
+      PieceType.ROOK
+    ];
+
+    for (const [index, item] of backRow.entries()) {
+      // white backrow
+      entries[`${stateId}-${startingRow}-${startingCol+index}`] = new Piece({
+        team: Team.WHITE,
+        type: item
+      }).toBinary();
+      // white pawn
+      entries[`${stateId}-${startingRow+1}-${startingCol+index}`] = new Piece({
+        team: Team.WHITE,
+        type: PieceType.PAWN
+      }).toBinary();
+      // black backrow
+      entries[`${stateId}-${startingRow+7}-${startingCol+index}`] = new Piece({
+        team: Team.BLACK,
+        type: item
+      }).toBinary();
+      entries[`${stateId}-${startingRow+6}-${startingCol+index}`] = new Piece({
+        team: Team.BLACK,
+        type: PieceType.PAWN
+      }).toBinary();
+    }
+
+    return entries;
+  }
+
   async initGame(
     context: TransactionContext,
     state: Cheaoss.State,
     request: InitGameRequest
   ) {
     const piecesMap = SortedMap.ref(context.stateId);
-    let entries: { [key:string] : Uint8Array } = {}; // ??? how do I actually do this creation & setting
+    // each array item is the location->piece dict for one board 
+    let entries: { [key:string] : Uint8Array }[] = []; // ??? how do I actually do this creation & setting
     let keys: string[] = []; 
 
-    // this should perhaps blow away anything that exists there, but eh. later. 
-    // console.log("teams are", Object.keys(Team)); // returns [ '0', '1', 'WHITE', 'BLACK' ]
-
-    // generate keys
+    // clear the entire board of any stuff
     for (let row: number = 0; row < 8*BOARD_SIZE; row++) {
       for (let col: number = 0; col < 8*BOARD_SIZE; col++) {
         keys.push(context.stateId + "-" + row + "-" + col);
       }
     }
+    await piecesMap.remove(context, { keys: keys });
 
-    keys.forEach(keyName => {
-      entries[keyName] = new Piece({
-        team: Team.WHITE,
-        type: PieceType.KING
-      }).toBinary();
-    });
-        
-    const resp = await piecesMap.insert(context, {entries: entries});
-    const get = await piecesMap.get(context, {key: keys[0]});
+    // make the new subboard 
+    for (let boardRow: number = 0; boardRow < BOARD_SIZE; boardRow++) {
+      for (let boardCol: number = 0; boardCol < BOARD_SIZE; boardCol++) {
+        entries.push(this.initialBoardPieces(context.stateId, boardRow*8, boardCol*8));
+      }
+    }
+    console.log(Object.assign({}, ...entries));
+
+    const resp = await piecesMap.insert(
+      context,
+      {
+        entries: Object.assign({}, ...entries)
+      });
 
     return {};
   }
