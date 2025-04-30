@@ -4,24 +4,53 @@ package cheaoss.v1;
 
 import "rbt/v1alpha1/options.proto";
 
-enum Team {
-    WHITE = 0;
-    BLACK = 1;
-} 
-
 message Cheaoss {
     option (rbt.v1alpha1.state) = {};
-    Team nextTeamAssignment = 1;    
+    Team nextTeamAssignment = 1;
+}
+
+enum Team {
+    TEAM_UNKNOWN = 0;
+    WHITE = 1;
+    BLACK = 2;
+} 
+
+message Location {
+    uint32 row = 1;
+    uint32 col = 2;
+}
+
+enum PieceType {
+    PIECES_TYPE_UNKNOWN = 0;
+    PAWN = 1;
+    KNIGHT = 2;
+    BISHOP = 3;
+    ROOK = 4;
+    QUEEN = 5;
+    KING = 6;
+}
+
+message Piece {
+    Team team = 1;
+    PieceType type = 2;
 }
 
 service CheaossMethods {
     rpc AssignTeam(AssignTeamRequest) returns (AssignTeamResponse) {
         option (rbt.v1alpha1.method).writer = {};
     }
+
+    rpc InitGame(InitGameRequest) returns (EmptyResponse) {
+        option (rbt.v1alpha1.method).transaction = {};
+    }
 }
+
+message EmptyResponse {}
 
 message AssignTeamRequest {}
 
 message AssignTeamResponse {
     Team team = 1; 
 }
+
+message InitGameRequest {}
