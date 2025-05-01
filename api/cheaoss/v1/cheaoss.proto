@@ -47,7 +47,7 @@ service CheaossMethods {
         option (rbt.v1alpha1.method).transaction = {};
     }
 
-    rpc GetBoard(EmptyRequest) returns (Cheaoss) {
+    rpc Board(EmptyRequest) returns (Cheaoss) {
         option (rbt.v1alpha1.method).reader = {};
     }
 }
@@ -64,8 +64,12 @@ message AssignTeamResponse {
 message InitGameRequest {}
 
 service PieceMethods {
-    rpc MakePiece(Piece) returns (EmptyResponse) {
+    rpc MakePiece(PieceMessage) returns (EmptyResponse) {
         option (rbt.v1alpha1.method).writer = {};
+    }
+
+    rpc Piece(EmptyRequest) returns (PieceMessage) {
+        option (rbt.v1alpha1.method).reader = {};
     }
 
     rpc MovePiece(Location) returns (EmptyResponse) {
@@ -76,4 +80,10 @@ service PieceMethods {
     // rpc RemovePiece() returns (EmptyResponse) {
     //    option (rbt.v1alpha1.method).writer = {};
     //}
+}
+
+message PieceMessage {
+    Team team = 1;
+    PieceType type = 2;
+    Location loc = 3;
 }

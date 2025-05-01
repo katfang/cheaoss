@@ -2,6 +2,7 @@ import { ReaderContext, TransactionContext, WriterContext } from "@reboot-dev/re
 
 import {
   AssignTeamRequest,
+  EmptyRequest,
   Cheaoss,
   InitGameRequest,
   Location,
@@ -112,7 +113,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
         .makePiece(
           context,
           new Piece.State({
-            team: Team.BLACk,
+            team: Team.BLACK,
             type: PieceType.PAWN,
             loc: {
               row: startingRow+8-1,
@@ -124,7 +125,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
     return keys;
   }
 
-  async getBoard(
+  async board(
     context: ReaderContext,
     state: Cheaoss.State,
     request: EmptyRequest,
@@ -141,7 +142,16 @@ export class PieceServicer extends Piece.Servicer {
   ) {
     state.team = request.team;
     state.type = request.type;
+    state.loc = request.loc;
     return {};
+  }
+
+  async piece(
+    context: ReaderContext,
+    state: Piece.State,
+    request: EmptyRequest,
+  ) {
+    return state;
   }
 
   async movePiece(
