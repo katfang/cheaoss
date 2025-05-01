@@ -7,6 +7,7 @@ import "rbt/v1alpha1/options.proto";
 message Cheaoss {
     option (rbt.v1alpha1.state) = {};
     Team nextTeamAssignment = 1;
+    repeated string pieceIds = 2;
 }
 
 enum Team {
@@ -31,8 +32,10 @@ enum PieceType {
 }
 
 message Piece {
+    option (rbt.v1alpha1.state) = {};
     Team team = 1;
     PieceType type = 2;
+    Location loc = 3;
 }
 
 service CheaossMethods {
@@ -43,8 +46,13 @@ service CheaossMethods {
     rpc InitGame(InitGameRequest) returns (EmptyResponse) {
         option (rbt.v1alpha1.method).transaction = {};
     }
+
+    rpc GetBoard(EmptyRequest) returns (Cheaoss) {
+        option (rbt.v1alpha1.method).reader = {};
+    }
 }
 
+message EmptyRequest {}
 message EmptyResponse {}
 
 message AssignTeamRequest {}
@@ -54,3 +62,18 @@ message AssignTeamResponse {
 }
 
 message InitGameRequest {}
+
+service PieceMethods {
+    rpc MakePiece(Piece) returns (EmptyResponse) {
+        option (rbt.v1alpha1.method).writer = {};
+    }
+
+    rpc MovePiece(Location) returns (EmptyResponse) {
+        option (rbt.v1alpha1.method).writer = {};
+    }
+
+    // Not currently possible to actually
+    // rpc RemovePiece() returns (EmptyResponse) {
+    //    option (rbt.v1alpha1.method).writer = {};
+    //}
+}

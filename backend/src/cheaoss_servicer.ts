@@ -1,14 +1,16 @@
 import { ReaderContext, TransactionContext, WriterContext } from "@reboot-dev/reboot";
 
 import {
-  Cheaoss,
   AssignTeamRequest,
+  Cheaoss,
   InitGameRequest,
-  Team,
+  Location,
   Piece,
   PieceType,
+  Team,
 } from "../../api/cheaoss/v1/cheaoss_rbt.js";
 import { SortedMap } from "@reboot-dev/reboot-std/collections/sorted_map.js";
+import { Reader } from "@reboot-dev/reboot-react";
 
 const BOARD_SIZE = 1; 
 
@@ -25,12 +27,31 @@ export class CheaossServicer extends Cheaoss.Servicer {
     return { team: team };
   }
 
-  initialBoardPieces(
+  async initGame(
+    context: TransactionContext,
+    state: Cheaoss.State,
+    request: InitGameRequest
+  ) {
+    let keysList: string[][] = [];
+    // make the new subboard
+    for (let boardRow: number = 0; boardRow < BOARD_SIZE; boardRow++) {
+      for (let boardCol: number = 0; boardCol < BOARD_SIZE; boardCol++) {
+        keysList.push(await this.makeInitialBoardPieces(context, context.stateId, boardRow*8, boardCol*8));
+      }
+    }
+
+    state.pieceIds = keysList.flat();
+
+    return {};
+  }
+
+  async makeInitialBoardPieces(
+    context: TransactionContext,
     stateId: string,
     startingRow: number,
     startingCol: number,
-  ): { [key:string]: Uint8Array} {
-    let entries: { [key:string] : Uint8Array } = {}; // ??? how do I actually do this creation & setting
+  ) {
+    let keys: string[] = [];
     let backRow: PieceType[] = [
       PieceType.ROOK,
       PieceType.KNIGHT,
@@ -43,62 +64,92 @@ export class CheaossServicer extends Cheaoss.Servicer {
     ];
 
     for (const [index, item] of backRow.entries()) {
-      // white backrow
-      entries[`${stateId}-${startingRow}-${startingCol+index}`] = new Piece({
-        team: Team.WHITE,
-        type: item
-      }).toBinary();
-      // white pawn
-      entries[`${stateId}-${startingRow+1}-${startingCol+index}`] = new Piece({
-        team: Team.WHITE,
-        type: PieceType.PAWN
-      }).toBinary();
-      // black backrow
-      entries[`${stateId}-${startingRow+7}-${startingCol+index}`] = new Piece({
-        team: Team.BLACK,
-        type: item
-      }).toBinary();
-      entries[`${stateId}-${startingRow+6}-${startingCol+index}`] = new Piece({
-        team: Team.BLACK,
-        type: PieceType.PAWN
-      }).toBinary();
+      keys.push(`${stateId}-w-${startingRow}-${startingCol}-${index}`);
+      await Piece.ref(`${stateId}-w-${startingRow}-${startingCol}-${index}`)
+        .idempotently()
+        .makePiece(
+          context,
+          new Piece.State({
+            team: Team.WHITE,
+            type: item,
+            loc: {
+              row: startingRow,
+              col: startingCol+index
+            }
+          })
+        );
+      keys.push(`${stateId}-w-${startingRow}-${startingCol}-p${index}`);
+      await Piece.ref(`${stateId}-w-${startingRow}-${startingCol}-p${index}`)
+        .idempotently()
+        .makePiece(
+          context,
+          new Piece.State({
+            team: Team.WHITE,
+            type: PieceType.PAWN,
+            loc: {
+              row: startingRow+1,
+              col: startingCol+index
+            }
+          })
+        );
+      keys.push(`${stateId}-b-${startingRow}-${startingCol}-${index}`);
+      await Piece.ref(`${stateId}-b-${startingRow}-${startingCol}-${index}`)
+        .idempotently()
+        .makePiece(
+          context,
+          new Piece.State({
+            team: Team.BLACK,
+            type: item,
+            loc: {
+              row: startingRow+8-1,
+              col: startingCol+index
+            }
+          })
+        );
+      keys.push(`${stateId}-b-${startingRow}-${startingCol}-p${index}`);
+      await Piece.ref(`${stateId}-b-${startingRow}-${startingCol}-p${index}`)
+        .idempotently()
+        .makePiece(
+          context,
+          new Piece.State({
+            team: Team.BLACk,
+            type: PieceType.PAWN,
+            loc: {
+              row: startingRow+8-1,
+              col: startingCol+index
+            }
+          })
+        );
     }
-
-    return entries;
+    return keys;
   }
 
-  async initGame(
-    context: TransactionContext,
+  async getBoard(
+    context: ReaderContext,
     state: Cheaoss.State,
-    request: InitGameRequest
+    request: EmptyRequest,
   ) {
-    const piecesMap = SortedMap.ref(context.stateId);
-    // each array item is the location->piece dict for one board 
-    let entries: { [key:string] : Uint8Array }[] = []; // ??? how do I actually do this creation & setting
-    let keys: string[] = []; 
+    return state;
+  }
+}
 
-    // clear the entire board of any stuff
-    for (let row: number = 0; row < 8*BOARD_SIZE; row++) {
-      for (let col: number = 0; col < 8*BOARD_SIZE; col++) {
-        keys.push(context.stateId + "-" + row + "-" + col);
-      }
-    }
-    await piecesMap.remove(context, { keys: keys });
+export class PieceServicer extends Piece.Servicer {
+  async makePiece(
+    context: WriterContext,
+    state: Piece.State,
+    request: Piece.State
+  ) {
+    state.team = request.team;
+    state.type = request.type;
+    return {};
+  }
 
-    // make the new subboard 
-    for (let boardRow: number = 0; boardRow < BOARD_SIZE; boardRow++) {
-      for (let boardCol: number = 0; boardCol < BOARD_SIZE; boardCol++) {
-        entries.push(this.initialBoardPieces(context.stateId, boardRow*8, boardCol*8));
-      }
-    }
-    console.log(Object.assign({}, ...entries));
-
-    const resp = await piecesMap.insert(
-      context,
-      {
-        entries: Object.assign({}, ...entries)
-      });
-
+  async movePiece(
+    context: WriterContext,
+    state: Piece.State,
+    request: Location
+  ) {
+    state.loc = request;
     return {};
   }
 }

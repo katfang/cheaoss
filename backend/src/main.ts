@@ -5,7 +5,7 @@ import sortedMap, {
 import { Hello } from "../../api/hello/v1/hello_rbt.js";
 import { HelloServicer } from "./hello_servicer.js";
 import { Cheaoss } from "../../api/cheaoss/v1/cheaoss_rbt.js";
-import { CheaossServicer } from "./cheaoss_servicer.js";
+import { CheaossServicer, PieceServicer } from "./cheaoss_servicer.js";
 
 const initialize = async (context: ExternalContext) => {
   const hello = Hello.ref("reboot-hello");
@@ -22,6 +22,6 @@ const initialize = async (context: ExternalContext) => {
 };
 
 new Application({
-  servicers: [HelloServicer, CheaossServicer, ...sortedMap.servicers()],
+  servicers: [HelloServicer, CheaossServicer, PieceServicer],
   initialize,
 }).run();
