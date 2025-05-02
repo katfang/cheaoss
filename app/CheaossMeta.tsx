@@ -9,7 +9,7 @@ export default function CheaossMeta({ gameId } : { gameId: string }) {
 
   useEffect(() => {
     async function fetchTeamAssignment() {
-      const {response } = await assignTeam({});
+      const { response } = await assignTeam({});
       console.log("game heaeder", response);
       if (response === undefined) {
         return (

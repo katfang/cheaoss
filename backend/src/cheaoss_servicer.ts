@@ -116,7 +116,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
             team: Team.BLACK,
             type: PieceType.PAWN,
             loc: {
-              row: startingRow+8-1,
+              row: startingRow+8-2,
               col: startingCol+index
             }
           })

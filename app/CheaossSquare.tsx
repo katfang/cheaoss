@@ -1,13 +1,13 @@
 "use client";
 
-import { PieceType } from "@/api/cheaoss/v1/cheaoss_pb";
+import CheaossPiece from "./CheaossPiece";
 
-export default function CheaossSquare({ gameId, row, col, piece } : { gameId: string, row: number, col: number, piece?: PieceType }) {
-  const squareColor = ((row + col) % 2 === 0 ? "bg-white-square" : "bg-black-square") + " w-full h-full";
+export default function CheaossSquare({ row, col, piece } : { gameId: string, row: number, col: number, piece?: CheaossPiece }) {
+  const squareColor = ((row + col) % 2 === 0 ? "bg-black-square" : "bg-white-square") + " w-full h-full";
 
   return (
     <div className={squareColor}>
-      P
+      {piece}
     </div>
   );
 }
