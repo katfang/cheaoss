@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Team, PieceType, usePiece, Piece } from "../api/cheaoss/v1/cheaoss_rbt_react"
 
 // LOAD PIECES ATTEMPT 3
-export default function CheaossPiece({ pieceId, updatePiece } : { pieceId: string, updatePiece: Function}) {
+export default function CheaossPiece({ pieceId, updatePiece, dispatchUpdate } : { pieceId: string, updatePiece: Function, dispatchUpdate: Function}) {
   const [oldPiece, setOldPiece] = useState<Piece.State|undefined>(new Piece.State({team: Team.TEAM_UNKNOWN, type: PieceType.PIECES_TYPE_UNKNOWN}));
   let piece = usePiece({ id: pieceId });
   let { response } = piece.usePiece();
@@ -12,7 +12,12 @@ export default function CheaossPiece({ pieceId, updatePiece } : { pieceId: strin
   // we're running into some set up issues where we're trying to set up CheaossPiece, but then we gotta update CheaossBoard
   if (oldPiece && response && oldPiece.loc?.row != response.loc?.row && oldPiece.loc?.col !== response.loc?.col) {
     setOldPiece(response);
-    updatePiece(pieceId, oldPiece, response);
+    // updatePiece(pieceId, oldPiece, response);
+    // dispatchUpdate({
+    //   type: 'update',
+    //   oldPiece: oldPiece,
+    //   newPiece: response
+    // });
   }
   return (
     <div>
