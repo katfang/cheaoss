@@ -7,8 +7,7 @@ export default function CheaossPiece({ pieceId, team, pieceType } : { pieceId: s
   if (team && pieceType) {
     return (
       <div>
-        {pieceId}
-        {Team[team]}-{PieceType[pieceType]}
+        {team}-{pieceType}
       </div>
     )
   } else {
