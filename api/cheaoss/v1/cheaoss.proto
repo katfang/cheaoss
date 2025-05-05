@@ -50,6 +50,10 @@ service CheaossMethods {
     rpc Board(EmptyRequest) returns (Cheaoss) {
         option (rbt.v1alpha1.method).reader = {};
     }
+
+    rpc InitialBoard(EmptyRequest) returns (InitialBoardResponse) {
+        option (rbt.v1alpha1.method).reader = {};
+    }
 }
 
 message EmptyRequest {}
@@ -62,6 +66,10 @@ message AssignTeamResponse {
 }
 
 message InitGameRequest {}
+
+message InitialBoardResponse {
+    map<string, PieceMessage> pieces = 1;
+}
 
 service PieceMethods {
     rpc MakePiece(PieceMessage) returns (EmptyResponse) {

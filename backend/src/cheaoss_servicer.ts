@@ -5,15 +5,61 @@ import {
   EmptyRequest,
   Cheaoss,
   InitGameRequest,
+  InitialBoardResponse,
   Location,
   Piece,
   PieceType,
   Team,
+  CheaossState,
+  PieceMessage,
 } from "../../api/cheaoss/v1/cheaoss_rbt.js";
 import { SortedMap } from "@reboot-dev/reboot-std/collections/sorted_map.js";
 import { Reader } from "@reboot-dev/reboot-react";
 
 const BOARD_SIZE = 1; 
+const BACK_ROW: PieceType[] = [
+  PieceType.ROOK,
+  PieceType.KNIGHT,
+  PieceType.BISHOP,
+  PieceType.QUEEN,
+  PieceType.KING,
+  PieceType.BISHOP,
+  PieceType.KNIGHT,
+  PieceType.ROOK
+];
+
+function pieceId(gameId: string, team: Team, startingRow: number, startingCol: number, index: number, pieceType: PieceType): string {
+  let teamStr = "u"; // Unknown
+  switch(team as Team) {
+    case Team.WHITE:
+      teamStr = "w";
+      break;
+    case Team.BLACK:
+      teamStr = "b";
+      break;
+    case Team.TEAM_UNKNOWN:
+    default:
+      teamStr = "u";
+      break;
+  }
+  switch(pieceType as PieceType) {
+    case PieceType.PAWN:
+      return `${gameId}-${teamStr}-${startingRow}-${startingCol}-p${index}`;
+    default:
+      return `${gameId}-${teamStr}-${startingRow}-${startingCol}-${index}`;
+  }
+}
+
+function pieceIds(gameId: string, startingRow: number, startingCol: number): string[] {
+  let keys: string[] = [];
+  for (const [index, item] of BACK_ROW.entries()) {
+    keys.push(pieceId(gameId, Team.WHITE, startingRow, startingCol, index, item));
+    keys.push(pieceId(gameId, Team.WHITE, startingRow, startingCol, index, PieceType.PAWN));
+    keys.push(pieceId(gameId, Team.BLACK, startingRow, startingCol, index, item));
+    keys.push(pieceId(gameId, Team.BLACK, startingRow, startingCol, index, PieceType.PAWN));
+  }
+  return keys;
+}
 
 export class CheaossServicer extends Cheaoss.Servicer {
   async assignTeam(
@@ -52,21 +98,8 @@ export class CheaossServicer extends Cheaoss.Servicer {
     startingRow: number,
     startingCol: number,
   ) {
-    let keys: string[] = [];
-    let backRow: PieceType[] = [
-      PieceType.ROOK,
-      PieceType.KNIGHT,
-      PieceType.BISHOP,
-      PieceType.QUEEN,
-      PieceType.KING,
-      PieceType.BISHOP,
-      PieceType.KNIGHT,
-      PieceType.ROOK
-    ];
-
-    for (const [index, item] of backRow.entries()) {
-      keys.push(`${stateId}-w-${startingRow}-${startingCol}-${index}`);
-      await Piece.ref(`${stateId}-w-${startingRow}-${startingCol}-${index}`)
+    for (const [index, item] of BACK_ROW.entries()) {
+      await Piece.ref(pieceId(stateId, Team.WHITE, startingRow, startingCol, index, item))
         .idempotently()
         .makePiece(
           context,
@@ -79,8 +112,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
             }
           })
         );
-      keys.push(`${stateId}-w-${startingRow}-${startingCol}-p${index}`);
-      await Piece.ref(`${stateId}-w-${startingRow}-${startingCol}-p${index}`)
+      await Piece.ref(pieceId(stateId, Team.WHITE, startingRow, startingCol, index, PieceType.PAWN))
         .idempotently()
         .makePiece(
           context,
@@ -93,8 +125,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
             }
           })
         );
-      keys.push(`${stateId}-b-${startingRow}-${startingCol}-${index}`);
-      await Piece.ref(`${stateId}-b-${startingRow}-${startingCol}-${index}`)
+      await Piece.ref(pieceId(stateId, Team.BLACK, startingRow, startingCol, index, item))
         .idempotently()
         .makePiece(
           context,
@@ -107,8 +138,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
             }
           })
         );
-      keys.push(`${stateId}-b-${startingRow}-${startingCol}-p${index}`);
-      await Piece.ref(`${stateId}-b-${startingRow}-${startingCol}-p${index}`)
+      await Piece.ref(pieceId(stateId, Team.BLACK, startingRow, startingCol, index, PieceType.PAWN))
         .idempotently()
         .makePiece(
           context,
@@ -122,7 +152,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
           })
         );
     }
-    return keys;
+    return pieceIds(stateId, startingRow, startingCol);
   }
 
   async board(
@@ -131,6 +161,27 @@ export class CheaossServicer extends Cheaoss.Servicer {
     request: EmptyRequest,
   ) {
     return state;
+  }
+
+  async initialBoard(
+    context: ReaderContext,
+    state: CheaossState,
+    request: EmptyRequest
+  ) {
+    const response = new InitialBoardResponse();
+    // TODO: is there a way to create thisconst pieces = new Map<string, PieceMessage>();
+
+    let keysList: string[][] = [];
+    // make the new subboard
+    for (let boardRow: number = 0; boardRow < BOARD_SIZE; boardRow++) {
+      for (let boardCol: number = 0; boardCol < BOARD_SIZE; boardCol++) {
+        const subboardPieceIds = pieceIds(context.stateId, boardRow, boardCol);
+        for (const subboardPieceId of subboardPieceIds) {
+          response.pieces[subboardPieceId] = await Piece.ref(subboardPieceId).piece(context);
+        }
+      }
+    }
+    return response;
   }
 }
 
