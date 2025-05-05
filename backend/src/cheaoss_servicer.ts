@@ -12,6 +12,7 @@ import {
   Team,
   CheaossState,
   PieceMessage,
+  BoardPiecesResponse,
 } from "../../api/cheaoss/v1/cheaoss_rbt.js";
 import { SortedMap } from "@reboot-dev/reboot-std/collections/sorted_map.js";
 import { Reader } from "@reboot-dev/reboot-react";
@@ -163,13 +164,14 @@ export class CheaossServicer extends Cheaoss.Servicer {
     return state;
   }
 
-  async initialBoard(
+  async boardPieces(
     context: ReaderContext,
     state: CheaossState,
     request: EmptyRequest
   ) {
-    const response = new InitialBoardResponse();
-    // TODO: is there a way to create thisconst pieces = new Map<string, PieceMessage>();
+    const response = new BoardPiecesResponse();
+    // TODO: is there a way to create this
+    // const pieces = new Map<string, PieceMessage>();
 
     let keysList: string[][] = [];
     // make the new subboard

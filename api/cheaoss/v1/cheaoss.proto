@@ -51,7 +51,7 @@ service CheaossMethods {
         option (rbt.v1alpha1.method).reader = {};
     }
 
-    rpc InitialBoard(EmptyRequest) returns (InitialBoardResponse) {
+    rpc BoardPieces(EmptyRequest) returns (BoardPiecesResponse) {
         option (rbt.v1alpha1.method).reader = {};
     }
 }
@@ -67,7 +67,7 @@ message AssignTeamResponse {
 
 message InitGameRequest {}
 
-message InitialBoardResponse {
+message BoardPiecesResponse {
     map<string, PieceMessage> pieces = 1;
 }
 
