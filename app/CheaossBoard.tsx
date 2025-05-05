@@ -16,7 +16,7 @@ export default function CheaossBoard({ gameId } : { gameId: string }) {
 
   useEffect(() => {
     async function fetchInitialPieces() {
-      const initialBoardResp = await cheaossRef.initialBoard();
+      const initialBoardResp = await cheaossRef.boardPieces();
       if (initialBoardResp === undefined) {
         return;
       }
