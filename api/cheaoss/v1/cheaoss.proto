@@ -54,6 +54,10 @@ service CheaossMethods {
     rpc BoardPieces(EmptyRequest) returns (BoardPiecesResponse) {
         option (rbt.v1alpha1.method).reader = {};
     }
+
+    rpc MovePiece(MoveRequest) returns (EmptyResponse) {
+        option (rbt.v1alpha1.method).transaction = {};
+    }
 }
 
 message EmptyRequest {}
@@ -69,6 +73,13 @@ message InitGameRequest {}
 
 message BoardPiecesResponse {
     map<string, PieceMessage> pieces = 1;
+}
+
+message MoveRequest {
+    string player = 1;
+    string piece_id = 2;
+    Location start = 3;
+    Location end = 4;
 }
 
 service PieceMethods {

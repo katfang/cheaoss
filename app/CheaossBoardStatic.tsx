@@ -1,5 +1,4 @@
 "use client";
-import { ReactElement } from "react";
 import { Piece } from "../api/cheaoss/v1/cheaoss_rbt_react"
 
 import CheaossSquare from "./CheaossSquare";

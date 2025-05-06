@@ -12,9 +12,12 @@ import {
   CheaossState,
   PieceMessage,
   BoardPiecesResponse,
+  EmptyResponse,
+  MoveRequest,
 } from "../../api/cheaoss/v1/cheaoss_rbt.js";
 import { SortedMap } from "@reboot-dev/reboot-std/collections/sorted_map.js";
 import { Reader } from "@reboot-dev/reboot-react";
+import { PartialMessage } from "@bufbuild/protobuf";
 
 const BOARD_SIZE = 1; 
 const BACK_ROW: PieceType[] = [
@@ -183,6 +186,28 @@ export class CheaossServicer extends Cheaoss.Servicer {
       }
     }
     return response;
+  }
+
+  async movePiece(
+    context: TransactionContext,
+    state: Cheaoss.State,
+    request: MoveRequest
+  ) {
+    // TODO ??? I thought this could be a writer because it only calls one write?
+    // get the piece
+    let pieceRef = Piece.ref(request.pieceId);
+    let piece = await pieceRef.piece(context);
+
+    // check the piece is in the right place
+    if (piece.loc === request.start) {
+      console.log("starting spot checks out!");
+      pieceRef.movePiece(context, request.end);
+
+    } else {
+      // TODO possibly should return an error
+    }
+
+    return {};
   }
 }
 
