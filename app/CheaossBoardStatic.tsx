@@ -1,16 +1,17 @@
 "use client";
 import { ReactElement } from "react";
+import { Piece } from "../api/cheaoss/v1/cheaoss_rbt_react"
 
 import CheaossSquare from "./CheaossSquare";
 
-export default function CheaossBoardStatic({ pieces, locToPieceId } : { pieces: Map<string, ReactElement>, locToPieceId: Map<string, string>}) {
+export default function CheaossBoardStatic({ pieceIdToState, locToPieceId } : { pieceIdToState: Map<string, Piece.State>, locToPieceId: Map<string, string>}) {
   // TODO: probably pass from above?
 
   // LOAD PIECES ATTEMPT 4
   const squares = [];
   for (let r = 7; r >= 0; r--) {
     for (let c = 0; c < 8; c++) {
-      squares.push(<CheaossSquare key={`${r}-${c}`} row={r} col={c} piece={pieces.get(locToPieceId.get(`${r}-${c}`) || "")} />);
+      squares.push(<CheaossSquare key={`${r}-${c}`} row={r} col={c} piece={pieceIdToState.get(locToPieceId.get(`${r}-${c}`) || "")} />);
     }
   }
 

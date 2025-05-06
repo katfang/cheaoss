@@ -5,7 +5,6 @@ import {
   EmptyRequest,
   Cheaoss,
   InitGameRequest,
-  InitialBoardResponse,
   Location,
   Piece,
   PieceType,
