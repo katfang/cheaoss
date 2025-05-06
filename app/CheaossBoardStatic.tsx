@@ -1,16 +1,46 @@
 "use client";
-import { Piece } from "../api/cheaoss/v1/cheaoss_rbt_react"
+import { useState } from 'react';
+import { Piece, Location } from "../api/cheaoss/v1/cheaoss_rbt_react"
+import { rcToLocKey, locToLocKey } from "./utils"
 
 import CheaossSquare from "./CheaossSquare";
 
-export default function CheaossBoardStatic({ pieceIdToState, locToPieceId } : { pieceIdToState: Map<string, Piece.State>, locToPieceId: Map<string, string>}) {
-  // TODO: probably pass from above?
+export default function CheaossBoardStatic({ pieceIdToState, locToPieceId, queueMove } : { pieceIdToState: Map<string, Piece.State>, locToPieceId: Map<string, string>, queueMove: (pieceId: string, start: Location, end: Location) => void}) {
+  const [startLoc, setStartLoc] = useState<Location | null>(null);
+  const [endLoc, setEndLoc] = useState<Location | null>(null);
 
-  // LOAD PIECES ATTEMPT 4
+  function selectSquare(loc: Location) {
+    if (startLoc === null) {
+      setStartLoc(loc);
+    } else if (endLoc === null) {
+      setEndLoc(loc);
+      let pieceId = locToPieceId.get(locToLocKey(startLoc));
+      if (pieceId !== undefined) {
+        queueMove(
+          pieceId,
+          startLoc,
+          loc
+        );
+      }
+      // TODO: else, error
+    }
+  }
+
   const squares = [];
-  for (let r = 7; r >= 0; r--) {
+  for (let r = 7; r >= 0; r--) { // in chess, we want 0,0 to be the bottom left corner
     for (let c = 0; c < 8; c++) {
-      squares.push(<CheaossSquare key={`${r}-${c}`} row={r} col={c} piece={pieceIdToState.get(locToPieceId.get(`${r}-${c}`) || "")} />);
+      let piece = pieceIdToState.get(
+        locToPieceId.get(rcToLocKey(r, c)) || ""
+      );
+      squares.push(<CheaossSquare
+        key={rcToLocKey(r, c)}
+        row={r}
+        col={c}
+        piece={piece}
+        onSelect={ (piece !== undefined || startLoc !== null) ? () => selectSquare(new Location({row: r, col: c})) : undefined }
+        isStart={startLoc !== null ? (startLoc.row == r && startLoc.col == c) : false}
+        isEnd={endLoc !== null ? (endLoc.row == r && endLoc.col == c) : false}
+      />);
     }
   }
 

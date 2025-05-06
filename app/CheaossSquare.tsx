@@ -22,12 +22,18 @@ blackPieces.set(PieceType.QUEEN, "♛");
 blackPieces.set(PieceType.KING, "♚");
 UNICODE_PIECES.set(Team.BLACK, blackPieces);
 
-export default function CheaossSquare({ row, col, piece } : { row: number, col: number, piece?: Piece.State}) {
+export default function CheaossSquare({ row, col, piece, onSelect, isStart, isEnd } : { row: number, col: number, piece?: Piece.State, onSelect?: () => void, isStart: boolean, isEnd: boolean }) {
   const squareColor = ((row + col) % 2 === 0 ? "bg-black-square" : "bg-white-square") + " w-full h-full";
   const pieceRep = piece ? UNICODE_PIECES.get(piece.team)?.get(piece.type) : '';
+  const cursorPointer = onSelect ? " cursor-pointer": "";
+  const startHighlight = isStart ? " border-2 border-solid border-green-500" : "";
+  const endHighlight = isEnd ? " border-2 border-solid border-red-500" : "";
 
   return (
-    <div className={squareColor + ' text-7xl text-center'}>
+    <div
+      className={squareColor + ' text-7xl text-center' + cursorPointer + startHighlight + endHighlight}
+      onClick={onSelect}
+    >
       {pieceRep}
     </div>
   );

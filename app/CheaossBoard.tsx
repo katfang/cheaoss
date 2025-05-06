@@ -1,5 +1,6 @@
 "use client";
-import { useCheaoss, Piece, PieceType, Team } from "../api/cheaoss/v1/cheaoss_rbt_react"
+import { useEffect } from "react";
+import { useCheaoss, Piece, Location } from "../api/cheaoss/v1/cheaoss_rbt_react"
 
 import CheaossBoardStatic from "./CheaossBoardStatic";
 import Error from "./Error";
@@ -12,6 +13,15 @@ export default function CheaossBoard({ gameId } : { gameId: string }) {
 
   if (boardPieces.response === undefined) {
     return;
+  }
+
+  function movePiece(pieceId: string, start:Location, end:Location) {
+    cheaossRef.movePiece({
+      player: "fake",
+      pieceId: pieceId,
+      start: start,
+      end: end
+    })
   }
 
   // TODO ??? is there a way of having this update by piece using usePiece, or nope, nah?
@@ -28,6 +38,10 @@ export default function CheaossBoard({ gameId } : { gameId: string }) {
   }
 
   return (
-    <CheaossBoardStatic pieceIdToState={newStates} locToPieceId={newLocs} />
+    <CheaossBoardStatic
+      pieceIdToState={newStates}
+      locToPieceId={newLocs}
+      queueMove={movePiece}
+    />
   );
 }

@@ -198,11 +198,11 @@ export class CheaossServicer extends Cheaoss.Servicer {
     let pieceRef = Piece.ref(request.pieceId);
     let piece = await pieceRef.piece(context);
 
+    console.log("I have stuff", request, piece);
     // check the piece is in the right place
-    if (piece.loc === request.start) {
+    if (piece && (piece.loc?.row === request.start?.row && piece.loc?.col === request.start?.col)) {
       console.log("starting spot checks out!");
-      pieceRef.movePiece(context, request.end);
-
+      await pieceRef.movePiece(context, request.end);
     } else {
       // TODO possibly should return an error
     }
@@ -236,6 +236,7 @@ export class PieceServicer extends Piece.Servicer {
     state: Piece.State,
     request: Location
   ) {
+    console.log("Moving the piece", state, request)
     state.loc = request;
     return {};
   }
