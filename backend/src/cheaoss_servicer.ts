@@ -60,6 +60,12 @@ function pieceIds(gameId: string, startingRow: number, startingCol: number): str
   return keys;
 }
 
+function flipTeam(team: Team): Team {
+  if (team === Team.WHITE) return Team.BLACK;
+  else if (team === Team.BLACK) return Team.WHITE;
+  else return Team.TEAM_UNKNOWN;
+}
+
 export class CheaossServicer extends Cheaoss.Servicer {
   async assignTeam(
     context: WriterContext,
@@ -71,9 +77,10 @@ export class CheaossServicer extends Cheaoss.Servicer {
       return { team: state.players[request.playerId] };
     }
 
-    // if team is unknown, set it to white, otherwise use the team as expected
-    const team = (state.nextTeamAssignment === Team.TEAM_UNKNOWN) ? Team.WHITE : state.nextTeamAssignment;
-    state.nextTeamAssignment = (team == Team.WHITE) ? Team.BLACK : Team.WHITE;
+    // assume that init game has been run
+    // TODO: possibly should throw an error if we ever have unknown team
+    const team = state.nextTeamAssignment;
+    state.nextTeamAssignment = flipTeam(team);
     state.players[request.playerId] = team;
     return { team: team };
   }
@@ -92,6 +99,9 @@ export class CheaossServicer extends Cheaoss.Servicer {
     }
 
     state.pieceIds = keysList.flat();
+    state.players = {};
+    state.nextTeamAssignment = Team.WHITE;
+    state.nextTeamToMove = Team.WHITE;
 
     return {};
   }
@@ -198,6 +208,16 @@ export class CheaossServicer extends Cheaoss.Servicer {
     // get the piece
     let pieceRef = Piece.ref(request.pieceId);
     let piece = await pieceRef.piece(context);
+
+    if (state.players[request.playerId] !== state.nextTeamToMove) {
+      throw new Cheaoss.MovePieceAborted(
+        new InvalidMoveError({
+          message: "Not your team's turn."
+        })
+      );
+    } else {
+      state.nextTeamToMove = flipTeam(state.nextTeamToMove);
+    }
 
     if (state.players[request.playerId] !== piece.team) {
       throw new Cheaoss.MovePieceAborted(

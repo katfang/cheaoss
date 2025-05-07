@@ -9,6 +9,7 @@ message Cheaoss {
     Team nextTeamAssignment = 1;
     repeated string pieceIds = 2;
     map<string, Team> players = 3;
+    Team nextTeamToMove = 4;
 }
 
 enum Team {

@@ -4,7 +4,6 @@ import { useCheaoss, Piece, Location, InvalidMoveError } from "../api/cheaoss/v1
 
 import CheaossSquare from "./CheaossSquare";
 import { rcToLocKey, locToLocKey } from "./utils"
-import { abort } from "process";
 
 export default function CheaossBoard({
   gameId,
