@@ -104,6 +104,8 @@ export class CheaossServicer extends Cheaoss.Servicer {
     state.nextTeamToMove = Team.WHITE;
     state.whiteMovesQueue = [];
     state.blackMovesQueue = [];
+    state.outstandingPlayerMoves = {};
+    state.outstandingPieceMoves = {};
 
     return {};
   }
@@ -265,7 +267,24 @@ export class CheaossServicer extends Cheaoss.Servicer {
       );
     }
 
+    // Outstanding moves check
+    if (request.playerId in state.outstandingPlayerMoves) {
+      // Make sure each player only has one move outstanding
+      throw new Cheaoss.QueueMoveAborted(
+        new InvalidMoveError({
+          message: "You already have a move outstanding."
+        })
+      );
+    } else if (request.pieceId in state.outstandingPieceMoves) {
+      // Make sure each piece has one move outstanding
+      throw new Cheaoss.QueueMoveAborted(
+        new InvalidMoveError({
+          message: "This piece is already getting moved by someone else."
+        })
+      );
+    }
 
+    // Data validation check
     if (request.start === undefined || request.end === undefined) {
       throw new Cheaoss.QueueMoveAborted(
         new InvalidMoveError({
@@ -274,6 +293,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
       )
     }
 
+    // Chess logic checks
     if (state.players[request.playerId] !== piece.team) {
       throw new Cheaoss.QueueMoveAborted(
         new InvalidMoveError({
@@ -299,14 +319,13 @@ export class CheaossServicer extends Cheaoss.Servicer {
       }
     }
 
-    // TODO: check if there's already a queued move for this piece (only one outstanding)
-    // TODO: check if the player has already queued a move (can only have one outstanding)
-
     if (state.players[request.playerId] == Team.WHITE) {
       state.whiteMovesQueue.push(request);
     } else if (state.players[request.playerId] == Team.BLACK) {
       state.blackMovesQueue.push(request);
     }
+    state.outstandingPlayerMoves[request.playerId] = true;
+    state.outstandingPlayerMoves[request.pieceId] = true;
 
     return {};
   }

@@ -12,6 +12,8 @@ message Cheaoss {
     map<string, Team> players = 4;
     repeated MoveRequest white_moves_queue = 5;
     repeated MoveRequest black_moves_queue = 6;
+    map<string, bool> outstanding_player_moves = 7;
+    map<string, bool> outstanding_piece_moves = 8;
 }
 
 enum Team {

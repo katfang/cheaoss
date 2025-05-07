@@ -30,7 +30,7 @@ export default function CheaossBoard({
       setEndLoc(loc);
       let pieceId = locToPieceId.get(locToLocKey(startLoc));
       if (pieceId !== undefined) {
-        const { aborted } = await cheaossRef.movePiece({
+        const { aborted } = await cheaossRef.queueMove({
           playerId: playerId,
           pieceId: pieceId,
           start: startLoc,
@@ -38,9 +38,10 @@ export default function CheaossBoard({
         });
         if (aborted?.error instanceof InvalidMoveError) {
           alert(aborted.error.message);
+          setStartLoc(null);
+          setEndLoc(null);
         }
-        setStartLoc(null);
-        setEndLoc(null);
+        // if it's a valid move, then we want to keep showing the current move
       }
     }
   }
