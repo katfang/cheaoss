@@ -10,14 +10,9 @@ import {
   PieceType,
   Team,
   CheaossState,
-  PieceMessage,
   BoardPiecesResponse,
-  EmptyResponse,
   MoveRequest,
 } from "../../api/cheaoss/v1/cheaoss_rbt.js";
-import { SortedMap } from "@reboot-dev/reboot-std/collections/sorted_map.js";
-import { Reader } from "@reboot-dev/reboot-react";
-import { PartialMessage } from "@bufbuild/protobuf";
 
 const BOARD_SIZE = 1; 
 const BACK_ROW: PieceType[] = [
@@ -68,12 +63,18 @@ export class CheaossServicer extends Cheaoss.Servicer {
   async assignTeam(
     context: WriterContext,
     state: Cheaoss.State,
-    request: AssignTeamRequest 
+    request: AssignTeamRequest
   ) {
-    console.log("team assignment", state.nextTeamAssignment);
+    console.log("team assignment", request, state.nextTeamAssignment);
+    // if we've seen the player before, return their existing team
+    if (state.players[request.playerId] !== undefined) {
+      return { team: state.players[request.playerId] };
+    }
+
     // if team is unknown, set it to white, otherwise use the team as expected
     const team = (state.nextTeamAssignment === Team.TEAM_UNKNOWN) ? Team.WHITE : state.nextTeamAssignment;
     state.nextTeamAssignment = (team == Team.WHITE) ? Team.BLACK : Team.WHITE;
+    state.players[request.playerId] = team;
     return { team: team };
   }
 

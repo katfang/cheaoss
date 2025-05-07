@@ -6,9 +6,11 @@ import CheaossSquare from "./CheaossSquare";
 import { rcToLocKey, locToLocKey } from "./utils"
 
 export default function CheaossBoard({
-  gameId
+  gameId,
+  playerId
 } : {
-  gameId: string
+  gameId: string,
+  playerId: string
 }) {
   // TODO: probably pass from above?
   const cheaossRef = useCheaoss({ id: gameId });

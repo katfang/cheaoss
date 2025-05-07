@@ -8,6 +8,7 @@ message Cheaoss {
     option (rbt.v1alpha1.state) = {};
     Team nextTeamAssignment = 1;
     repeated string pieceIds = 2;
+    map<string, Team> players = 3;
 }
 
 enum Team {
@@ -63,7 +64,9 @@ service CheaossMethods {
 message EmptyRequest {}
 message EmptyResponse {}
 
-message AssignTeamRequest {}
+message AssignTeamRequest {
+    string player_id = 1;
+}
 
 message AssignTeamResponse {
     Team team = 1; 
