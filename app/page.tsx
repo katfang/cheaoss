@@ -7,15 +7,20 @@ import CheaossBoard from "./CheaossBoard";
 
 export default function Home() {
   // TODO: possibly page is not really the right place for this, but both the Meta and the Board will want the information
-  let [playerId, setPlayerId] = useState(crypto.randomUUID());
+  let [playerId, setPlayerId] = useState<string|null>(null);
   useEffect(() => {
     let sessionPlayerId = sessionStorage.getItem('playerId');
-    if (sessionPlayerId !== null) {
-      setPlayerId(sessionPlayerId);
-    } else {
-      sessionStorage.setItem('playerId', playerId);
+    if (sessionPlayerId === null) {
+      sessionPlayerId = crypto.randomUUID();
+      sessionStorage.setItem('playerId', sessionPlayerId);
     }
+    setPlayerId(sessionPlayerId);
   }, []);
+  console.log("playerId better be", playerId);
+
+  if (playerId === null) {
+    return "Loading";
+  }
 
   return (
     <div className="grid grid-cols-[1fr_1fr] grid-rows-[20px_1fr] items-center justify-items-center min-h-screen p-8 gap-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">

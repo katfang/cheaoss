@@ -25,7 +25,7 @@ export default function CheaossMeta({
       setTeam(response.team);
     }
     fetchTeamAssignment();
-  }, []);
+  }, [playerId]);
 
   return (
     <div className="w-full text-right">Assigned to team {Team[team]}.</div>
