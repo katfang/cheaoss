@@ -102,6 +102,8 @@ export class CheaossServicer extends Cheaoss.Servicer {
     state.players = {};
     state.nextTeamAssignment = Team.WHITE;
     state.nextTeamToMove = Team.WHITE;
+    state.whiteMovesQueue = [];
+    state.blackMovesQueue = [];
 
     return {};
   }
@@ -241,6 +243,73 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
     return {};
   }
+
+  async queueMove(
+    context: WriterContext,
+    state: Cheaoss.State,
+    request: MoveRequest
+  ) {
+    let pieceRef = Piece.ref(request.pieceId);
+    let piece;
+    try {
+      piece = await pieceRef.piece(context);
+    } catch (e) {
+      // TODO: what actually do we get if a piece doesn't exist --
+      // you get a `PiecePieceAborted: rbt.v1alpha1.StateNotConstructed`
+      // which I guess ... is sort of handled ... in that it'll throw before we get here.
+      // TODO: this might actually swallow more than we expect.
+      throw new Cheaoss.QueueMoveAborted(
+        new InvalidMoveError({
+          message: "Piece not found"
+        })
+      );
+    }
+
+
+    if (request.start === undefined || request.end === undefined) {
+      throw new Cheaoss.QueueMoveAborted(
+        new InvalidMoveError({
+          message: "Move requests must have a start and an end"
+        })
+      )
+    }
+
+    if (state.players[request.playerId] !== piece.team) {
+      throw new Cheaoss.QueueMoveAborted(
+        new InvalidMoveError({
+          message: "You can only move your team's pieces."
+        })
+      );
+    } else if (piece.loc?.row !== request.start.row || piece.loc?.col !== request.start.col) {
+        throw new Cheaoss.QueueMoveAborted(
+          new InvalidMoveError({
+            message: "That piece isn't there anymore."
+          })
+        );
+    } else {
+      const pieceToCheck = new Piece.State();
+      pieceToCheck.copyFrom(piece); // TODO: some left over troubles from the fact I called it PieceMethod.Piece & have a message caleld Piece
+      const check = validateChessMove(pieceToCheck, request.end);
+      if (check !== null) {
+        throw new Cheaoss.QueueMoveAborted(
+          new InvalidMoveError({
+            message: "Invalid chess move."
+          })
+        );
+      }
+    }
+
+    // TODO: check if there's already a queued move for this piece (only one outstanding)
+    // TODO: check if the player has already queued a move (can only have one outstanding)
+
+    if (state.players[request.playerId] == Team.WHITE) {
+      state.whiteMovesQueue.push(request);
+    } else if (state.players[request.playerId] == Team.BLACK) {
+      state.blackMovesQueue.push(request);
+    }
+
+    return {};
+  }
 }
 
 export class PieceServicer extends Piece.Servicer {
@@ -268,25 +337,32 @@ export class PieceServicer extends Piece.Servicer {
     state: Piece.State,
     request: Location
   ) {
-    switch (state.type as PieceType) {
-      case PieceType.PAWN:
-        // TODO: allow 2 spaces initially
-        // TODO: allow eating on the diagonal
-        // TODO: disallow moving forward if something else is there
-        // can only move inc row by 1 if white, dec row by 1 if black.
-        let direction = (state.team === Team.WHITE) ? 1 : -1;
-        if (state.loc?.row !== request.row - direction || state.loc?.col !== request.col) {
-          throw new Piece.MovePieceAborted(
-            new InvalidMoveError({
-              message: "Pawns must move forward in their own column."
-            })
-          );
-        }
-        break;
+    const check = validateChessMove(state, request);
+    if (check === null) {
+      console.log("Moving the piece", state, request)
+      state.loc = request;
+      return {};
+    } else {
+      throw new Piece.MovePieceAborted(check);
     }
-
-    console.log("Moving the piece", state, request)
-    state.loc = request;
-    return {};
   }
+}
+
+function validateChessMove(piece: Piece.State, end: Location): InvalidMoveError|null {
+  switch (piece.type as PieceType) {
+    case PieceType.PAWN:
+      // TODO: allow 2 spaces initially
+      // TODO: allow eating on the diagonal
+      // TODO: disallow moving forward if something else is there
+      // can only move inc row by 1 if white, dec row by 1 if black.
+      let direction = (piece.team === Team.WHITE) ? 1 : -1;
+      if (piece.loc?.row !== end.row - direction || piece.loc?.col !== end.col) {
+        return  new InvalidMoveError({
+          message: "Pawns must move forward in their own column."
+        })
+      }
+      break;
+  }
+
+  return null;
 }

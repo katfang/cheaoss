@@ -6,10 +6,12 @@ import "rbt/v1alpha1/options.proto";
 
 message Cheaoss {
     option (rbt.v1alpha1.state) = {};
-    Team nextTeamAssignment = 1;
-    repeated string pieceIds = 2;
-    map<string, Team> players = 3;
-    Team nextTeamToMove = 4;
+    Team next_team_assignment = 1;
+    Team next_team_to_move = 2;
+    repeated string piece_ids = 3;
+    map<string, Team> players = 4;
+    repeated MoveRequest white_moves_queue = 5;
+    repeated MoveRequest black_moves_queue = 6;
 }
 
 enum Team {
@@ -63,6 +65,13 @@ service CheaossMethods {
             errors: [ "InvalidMoveError" ],
         };
     }
+
+    rpc QueueMove(MoveRequest) returns (EmptyResponse) {
+        option (rbt.v1alpha1.method) = {
+            writer: {},
+            errors: [ "InvalidMoveError" ],
+        };
+    }
 }
 
 message EmptyRequest {}
@@ -79,7 +88,7 @@ message AssignTeamResponse {
 message InitGameRequest {}
 
 message BoardPiecesResponse {
-    map<string, PieceMessage> pieces = 1;
+    map<string, cheaoss.v1.Piece> pieces = 1;
 }
 
 message MoveRequest {
@@ -94,11 +103,11 @@ message InvalidMoveError {
 }
 
 service PieceMethods {
-    rpc MakePiece(PieceMessage) returns (EmptyResponse) {
+    rpc MakePiece(cheaoss.v1.Piece) returns (EmptyResponse) {
         option (rbt.v1alpha1.method).writer = {};
     }
 
-    rpc Piece(EmptyRequest) returns (PieceMessage) {
+    rpc Piece(EmptyRequest) returns (cheaoss.v1.Piece) {
         option (rbt.v1alpha1.method).reader = {};
     }
 
@@ -113,10 +122,4 @@ service PieceMethods {
     // rpc RemovePiece() returns (EmptyResponse) {
     //    option (rbt.v1alpha1.method).writer = {};
     //}
-}
-
-message PieceMessage {
-    Team team = 1;
-    PieceType type = 2;
-    Location loc = 3;
 }
