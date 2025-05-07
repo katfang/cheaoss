@@ -57,7 +57,10 @@ service CheaossMethods {
     }
 
     rpc MovePiece(MoveRequest) returns (EmptyResponse) {
-        option (rbt.v1alpha1.method).transaction = {};
+        option (rbt.v1alpha1.method) = {
+            transaction: {},
+            errors: [ "InvalidMoveError" ],
+        };
     }
 }
 
@@ -79,10 +82,14 @@ message BoardPiecesResponse {
 }
 
 message MoveRequest {
-    string player = 1;
+    string player_id = 1;
     string piece_id = 2;
     Location start = 3;
     Location end = 4;
+}
+
+message InvalidMoveError {
+    string message = 1;
 }
 
 service PieceMethods {
@@ -95,7 +102,10 @@ service PieceMethods {
     }
 
     rpc MovePiece(Location) returns (EmptyResponse) {
-        option (rbt.v1alpha1.method).writer = {};
+        option (rbt.v1alpha1.method) = {
+            writer: {},
+            errors: [ "InvalidMoveError" ],
+        };
     }
 
     // Not currently possible to actually

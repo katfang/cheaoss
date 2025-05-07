@@ -1,9 +1,10 @@
 "use client";
 import { useState } from "react";
-import { useCheaoss, Piece, Location } from "../api/cheaoss/v1/cheaoss_rbt_react"
+import { useCheaoss, Piece, Location, InvalidMoveError } from "../api/cheaoss/v1/cheaoss_rbt_react"
 
 import CheaossSquare from "./CheaossSquare";
 import { rcToLocKey, locToLocKey } from "./utils"
+import { abort } from "process";
 
 export default function CheaossBoard({
   gameId,
@@ -23,21 +24,25 @@ export default function CheaossBoard({
     return "still loading";
   }
 
-  function selectSquare(loc: Location) {
+  async function selectSquare(loc: Location) {
     if (startLoc === null) {
       setStartLoc(loc);
     } else if (endLoc === null) {
       setEndLoc(loc);
       let pieceId = locToPieceId.get(locToLocKey(startLoc));
       if (pieceId !== undefined) {
-        cheaossRef.movePiece({
-          player: "fake",
+        const { aborted } = await cheaossRef.movePiece({
+          playerId: playerId,
           pieceId: pieceId,
           start: startLoc,
           end: loc
         });
+        if (aborted?.error instanceof InvalidMoveError) {
+          alert(aborted.error.message);
+        }
+        setStartLoc(null);
+        setEndLoc(null);
       }
-      // TODO: else, error
     }
   }
 

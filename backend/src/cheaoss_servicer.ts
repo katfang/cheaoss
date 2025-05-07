@@ -12,6 +12,7 @@ import {
   CheaossState,
   BoardPiecesResponse,
   MoveRequest,
+  InvalidMoveError,
 } from "../../api/cheaoss/v1/cheaoss_rbt.js";
 
 const BOARD_SIZE = 1; 
@@ -65,7 +66,6 @@ export class CheaossServicer extends Cheaoss.Servicer {
     state: Cheaoss.State,
     request: AssignTeamRequest
   ) {
-    console.log("team assignment", request, state.nextTeamAssignment);
     // if we've seen the player before, return their existing team
     if (state.players[request.playerId] !== undefined) {
       return { team: state.players[request.playerId] };
@@ -199,13 +199,24 @@ export class CheaossServicer extends Cheaoss.Servicer {
     let pieceRef = Piece.ref(request.pieceId);
     let piece = await pieceRef.piece(context);
 
-    console.log("I have stuff", request, piece);
+    if (state.players[request.playerId] !== piece.team) {
+      throw new Cheaoss.MovePieceAborted(
+        new InvalidMoveError({
+          message: "You can only move your team's pieces."
+        })
+      );
+    }
+
     // check the piece is in the right place
     if (piece && (piece.loc?.row === request.start?.row && piece.loc?.col === request.start?.col)) {
-      console.log("starting spot checks out!");
       await pieceRef.movePiece(context, request.end);
     } else {
       // TODO possibly should return an error
+      throw new Cheaoss.MovePieceAborted(
+        new InvalidMoveError({
+          message: "Piece was not found starting location."
+        })
+      );
     }
 
     return {};
@@ -237,6 +248,23 @@ export class PieceServicer extends Piece.Servicer {
     state: Piece.State,
     request: Location
   ) {
+    switch (state.type as PieceType) {
+      case PieceType.PAWN:
+        // TODO: allow 2 spaces initially
+        // TODO: allow eating on the diagonal
+        // TODO: disallow moving forward if something else is there
+        // can only move inc row by 1 if white, dec row by 1 if black.
+        let direction = (state.team === Team.WHITE) ? 1 : -1;
+        if (state.loc?.row !== request.row - direction || state.loc?.col !== request.col) {
+          throw new Piece.MovePieceAborted(
+            new InvalidMoveError({
+              message: "Pawns must move forward in their own column."
+            })
+          );
+        }
+        break;
+    }
+
     console.log("Moving the piece", state, request)
     state.loc = request;
     return {};

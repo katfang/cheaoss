@@ -26,8 +26,8 @@ export default function CheaossSquare({ row, col, piece, onSelect, isStart, isEn
   const squareColor = ((row + col) % 2 === 0 ? "bg-black-square" : "bg-white-square") + " w-full h-full";
   const pieceRep = piece ? UNICODE_PIECES.get(piece.team)?.get(piece.type) : '';
   const cursorPointer = onSelect ? " cursor-pointer": "";
-  const startHighlight = isStart ? " border-2 border-solid border-green-500" : "";
-  const endHighlight = isEnd ? " border-2 border-solid border-red-500" : "";
+  const startHighlight = isStart ? " border-2 border-dashed border-green-500" : "";
+  const endHighlight = isEnd ? " border-2 border-solid border-green-500" : "";
 
   return (
     <div
