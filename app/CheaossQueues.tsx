@@ -1,0 +1,58 @@
+"use client";
+import { useState } from "react";
+import { useCheaoss, Piece, Location, InvalidMoveError } from "../api/cheaoss/v1/cheaoss_rbt_react"
+
+export default function CheaossQueues({
+  gameId,
+  playerId
+} : {
+  gameId: string,
+  playerId: string
+}) {
+  // TODO: probably pass from above?
+  const cheaossRef = useCheaoss({ id: gameId });
+  const queues = cheaossRef.useQueues();
+
+  if (queues.response === undefined) {
+    return "still loading";
+  }
+
+  let whiteMoves = [];
+  for (let move of queues.response.whiteMovesQueue) {
+    whiteMoves.push(
+      <li key={move.playerId}>
+        {move.playerId} -
+        ({move.start?.row}, {move.start?.col}) -
+        ({move.end?.row} , {move.end?.col})
+      </li>
+    )
+  }
+
+  let blackMoves = [];
+  for (let move of queues.response.blackMovesQueue) {
+    blackMoves.push(
+      <li key={move.playerId}>
+        {move.playerId} -
+        ({move.start?.row}, {move.start?.col}) -
+        ({move.end?.row} , {move.end?.col})
+      </li>
+    )
+  }
+
+  return (
+    <div className="w-full h-full">
+      <div>
+        <h1>Pending White Moves</h1>
+        <ul>
+          {whiteMoves}
+        </ul>
+      </div>
+      <div>
+        <h1>Pending Black Moves</h1>
+        <ul>
+          {blackMoves}
+        </ul>
+      </div>
+    </div>
+  );
+}

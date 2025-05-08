@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import CheaossMeta from "./CheaossMeta";
 import CheaossBoard from "./CheaossBoard";
+import CheaossQueues from "./CheaossQueues";
 
 export default function Home() {
   // TODO: possibly page is not really the right place for this, but both the Meta and the Board will want the information
@@ -31,7 +32,7 @@ export default function Home() {
         <CheaossBoard gameId="singleton" playerId={playerId} />
       </div>
       <div>
-        Other Sidebar
+        <CheaossQueues gameId="singleton" playerId={playerId} />
       </div>
     </div>
   );
