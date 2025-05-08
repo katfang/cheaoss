@@ -61,13 +61,6 @@ service CheaossMethods {
         option (rbt.v1alpha1.method).reader = {};
     }
 
-    rpc MovePiece(MoveRequest) returns (EmptyResponse) {
-        option (rbt.v1alpha1.method) = {
-            transaction: {},
-            errors: [ "InvalidMoveError" ],
-        };
-    }
-
     rpc QueueMove(MoveRequest) returns (EmptyResponse) {
         option (rbt.v1alpha1.method) = {
             writer: {},
@@ -123,9 +116,4 @@ service PieceMethods {
             errors: [ "InvalidMoveError" ],
         };
     }
-
-    // Not currently possible to actually
-    // rpc RemovePiece() returns (EmptyResponse) {
-    //    option (rbt.v1alpha1.method).writer = {};
-    //}
 }

@@ -204,32 +204,6 @@ export class CheaossServicer extends Cheaoss.Servicer {
     return response;
   }
 
-  async movePiece(
-    context: TransactionContext,
-    state: Cheaoss.State,
-    request: MoveRequest
-  ) {
-    // TODO ??? I thought this could be a writer because it only calls one write?
-    // get the piece
-    let pieceRef = Piece.ref(request.pieceId);
-    let piece = await pieceRef.piece(context);
-
-
-    // check the piece is in the right place
-    if (piece && (piece.loc?.row === request.start?.row && piece.loc?.col === request.start?.col)) {
-      await pieceRef.movePiece(context, request.end);
-    } else {
-      // TODO possibly should return an error
-      throw new Cheaoss.MovePieceAborted(
-        new InvalidMoveError({
-          message: "Piece was not found starting location."
-        })
-      );
-    }
-
-    return {};
-  }
-
   async queueMove(
     context: WriterContext,
     state: Cheaoss.State,
