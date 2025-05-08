@@ -67,6 +67,7 @@ function flipTeam(team: Team): Team {
 }
 
 export class CheaossServicer extends Cheaoss.Servicer {
+
   async assignTeam(
     context: WriterContext,
     state: Cheaoss.State,
@@ -213,23 +214,6 @@ export class CheaossServicer extends Cheaoss.Servicer {
     let pieceRef = Piece.ref(request.pieceId);
     let piece = await pieceRef.piece(context);
 
-    if (state.players[request.playerId] !== state.nextTeamToMove) {
-      throw new Cheaoss.MovePieceAborted(
-        new InvalidMoveError({
-          message: "Not your team's turn."
-        })
-      );
-    } else {
-      state.nextTeamToMove = flipTeam(state.nextTeamToMove);
-    }
-
-    if (state.players[request.playerId] !== piece.team) {
-      throw new Cheaoss.MovePieceAborted(
-        new InvalidMoveError({
-          message: "You can only move your team's pieces."
-        })
-      );
-    }
 
     // check the piece is in the right place
     if (piece && (piece.loc?.row === request.start?.row && piece.loc?.col === request.start?.col)) {
@@ -329,6 +313,34 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
     return {};
   }
+
+  async runQueue(
+    context: TransactionContext,
+    state: Cheaoss.State,
+    request: EmptyRequest
+  ) {
+    // TODO: check if this works. We're trying to grab the queue
+    const queue = (state.nextTeamToMove === Team.WHITE) ? state.whiteMovesQueue : state.blackMovesQueue;
+
+    // If there is no next move to make, get out of here
+    if (queue.length === 0) {
+      return {};
+    }
+
+    // take the move and make it
+    let move = queue.shift();
+    if (move === undefined) { return {}; } // not possible since length > 0, but making the wiggly lines happy
+    this.ref().movePiece(context, move);
+
+    // flip the team who can play
+    state.nextTeamToMove = flipTeam(state.nextTeamToMove);
+
+    // remove from indices
+    delete state.outstandingPieceMoves[move.pieceId]
+    delete state.outstandingPieceMoves[move.playerId]
+
+    return {};
+  }
 }
 
 export class PieceServicer extends Piece.Servicer {
@@ -354,12 +366,29 @@ export class PieceServicer extends Piece.Servicer {
   async movePiece(
     context: WriterContext,
     state: Piece.State,
-    request: Location
+    request: MoveRequest
   ) {
-    const check = validateChessMove(state, request);
+    // Data validation check -- should not happen since queueMove does this check before adding it to the queue.
+    if (request.start === undefined || request.end === undefined) {
+      throw new Piece.MovePieceAborted(
+        new InvalidMoveError({
+          message: "Move requests must have a start and an end"
+        })
+      )
+    }
+    // check the piece is in the right place
+    if (state.loc?.row !== request.start.row && state.loc?.col !== request.start.col) {
+      throw new Piece.MovePieceAborted(
+        new InvalidMoveError({
+          message: "Piece not found at starting location."
+        })
+      );
+    }
+
+    const check = validateChessMove(state, request.end);
     if (check === null) {
       console.log("Moving the piece", state, request)
-      state.loc = request;
+      state.loc = request.end;
       return {};
     } else {
       throw new Piece.MovePieceAborted(check);

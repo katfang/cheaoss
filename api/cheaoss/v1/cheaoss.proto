@@ -74,6 +74,10 @@ service CheaossMethods {
             errors: [ "InvalidMoveError" ],
         };
     }
+
+    rpc RunQueue(EmptyRequest) returns (EmptyResponse) {
+        option (rbt.v1alpha1.method).transaction = {};
+    }
 }
 
 message EmptyRequest {}
@@ -113,7 +117,7 @@ service PieceMethods {
         option (rbt.v1alpha1.method).reader = {};
     }
 
-    rpc MovePiece(Location) returns (EmptyResponse) {
+    rpc MovePiece(MoveRequest) returns (EmptyResponse) {
         option (rbt.v1alpha1.method) = {
             writer: {},
             errors: [ "InvalidMoveError" ],
