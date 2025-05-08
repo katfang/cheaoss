@@ -71,6 +71,10 @@ service CheaossMethods {
     rpc RunQueue(EmptyRequest) returns (EmptyResponse) {
         option (rbt.v1alpha1.method).transaction = {};
     }
+
+    rpc Queues(EmptyRequest) returns (QueuesResponse) {
+        option (rbt.v1alpha1.method).reader = {};
+    }
 }
 
 message EmptyRequest {}
@@ -95,6 +99,11 @@ message MoveRequest {
     string piece_id = 2;
     Location start = 3;
     Location end = 4;
+}
+
+message QueuesResponse {
+    repeated MoveRequest white_moves_queue = 1;
+    repeated MoveRequest black_moves_queue = 2;
 }
 
 message InvalidMoveError {

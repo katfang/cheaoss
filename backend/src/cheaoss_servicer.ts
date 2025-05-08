@@ -332,6 +332,18 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
     return {};
   }
+
+  async queues(
+    context: ReaderContext,
+    state: Cheaoss.State,
+    request: EmptyRequest
+  ) {
+    return {
+      whiteMovesQueue: state.whiteMovesQueue,
+      blackMovesQueue: state.blackMovesQueue
+    }
+
+  }
 }
 
 export class PieceServicer extends Piece.Servicer {
