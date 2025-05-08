@@ -308,8 +308,10 @@ export class CheaossServicer extends Cheaoss.Servicer {
     } else if (state.players[request.playerId] == Team.BLACK) {
       state.blackMovesQueue.push(request);
     }
+    state.outstandingPieceMoves[request.pieceId] = true;
     state.outstandingPlayerMoves[request.playerId] = true;
-    state.outstandingPlayerMoves[request.pieceId] = true;
+
+    await this.ref().schedule().runQueue(context);
 
     return {};
   }
@@ -330,14 +332,29 @@ export class CheaossServicer extends Cheaoss.Servicer {
     // take the move and make it
     let move = queue.shift();
     if (move === undefined) { return {}; } // not possible since length > 0, but making the wiggly lines happy
-    this.ref().movePiece(context, move);
+    try {
+      await Piece.ref(move.pieceId).movePiece(context, move);
+    } catch (e) {
+      // TODO: check that this is a Piece.MovePieceAborted(InvalidMoveError)
+      // sort of error and not something else.
+      // TODO: ppossibly should add this to a list of errors that the user can see
+      console.log("error in runQueue", e);
+    }
 
     // flip the team who can play
     state.nextTeamToMove = flipTeam(state.nextTeamToMove);
 
     // remove from indices
     delete state.outstandingPieceMoves[move.pieceId]
-    delete state.outstandingPieceMoves[move.playerId]
+    delete state.outstandingPlayerMoves[move.playerId]
+
+    // check if there's more moves to run, if so, run the queue in half a second
+    const otherQueue = (state.nextTeamToMove === Team.WHITE) ? state.whiteMovesQueue : state.blackMovesQueue;
+    if (otherQueue.length > 0) {
+      await this.ref().schedule({
+        when: new Date(Date.now() + 500)
+      }).runQueue(context);
+    }
 
     return {};
   }
