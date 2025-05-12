@@ -174,14 +174,6 @@ export class CheaossServicer extends Cheaoss.Servicer {
     return pieceIds(stateId, startingRow, startingCol);
   }
 
-  async board(
-    context: ReaderContext,
-    state: Cheaoss.State,
-    request: EmptyRequest,
-  ) {
-    return state;
-  }
-
   async boardPieces(
     context: ReaderContext,
     state: CheaossState,

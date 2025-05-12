@@ -14,12 +14,11 @@ export default function CheaossBoard({
 }) {
   // TODO: probably pass from above?
   const cheaossRef = useCheaoss({ id: gameId });
-  const boardRes = cheaossRef.useBoard();
   const boardPieces = cheaossRef.useBoardPieces();
   const [startLoc, setStartLoc] = useState<Location | null>(null);
   const [endLoc, setEndLoc] = useState<Location | null>(null);
 
-  if (boardRes.response === undefined || boardPieces.response === undefined) {
+  if (boardPieces.response === undefined) {
     return "still loading";
   }
 

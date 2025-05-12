@@ -53,10 +53,6 @@ service CheaossMethods {
         option (rbt.v1alpha1.method).transaction = {};
     }
 
-    rpc Board(EmptyRequest) returns (Cheaoss) {
-        option (rbt.v1alpha1.method).reader = {};
-    }
-
     rpc BoardPieces(EmptyRequest) returns (BoardPiecesResponse) {
         option (rbt.v1alpha1.method).reader = {};
     }
