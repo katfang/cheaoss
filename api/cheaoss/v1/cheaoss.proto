@@ -155,7 +155,7 @@ service LocPieceIndexMethods {
         option (rbt.v1alpha1.method).writer = {};
     }
 
-    rpc Delete(EmptyRequest) returns (EmptyResponse) {
+    rpc Deleter(EmptyRequest) returns (EmptyResponse) {
         option (rbt.v1alpha1.method).writer = {};
     }
 }

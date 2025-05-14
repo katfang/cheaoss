@@ -409,7 +409,7 @@ export class PieceServicer extends Piece.Servicer {
       state.loc = request.end;
 
       // update the idnex
-      await pieceToLocIdRef(context.stateId, request.start).delete(context);
+      await pieceToLocIdRef(context.stateId, request.start).deleter(context);
       await pieceToLocIdRef(context.stateId, request.end).set(
         context,
         { pieceId: context.stateId }
@@ -469,7 +469,7 @@ export class LocPieceIndexServicer extends LocPieceIndex.Servicer {
     return {};
   }
 
-  async delete(
+  async deleter(
     context: WriterContext,
     state: LocPieceIndex.State,
     request: EmptyRequest
