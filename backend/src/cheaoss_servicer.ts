@@ -15,6 +15,7 @@ import {
   MoveRequest,
   InvalidMoveError,
   LocationRequiredError,
+  HasOutstandingMoveRequest,
 } from "../../api/cheaoss/v1/cheaoss_rbt.js";
 
 const BOARD_SIZE = 1; 
@@ -336,7 +337,18 @@ export class CheaossServicer extends Cheaoss.Servicer {
       whiteMovesQueue: state.whiteMovesQueue,
       blackMovesQueue: state.blackMovesQueue
     }
+  }
 
+  async hasOutstandingMove(
+    context: ReaderContext,
+    state: Cheaoss.State,
+    request: HasOutstandingMoveRequest
+  ) {
+    if (request.playerId in state.outstandingPlayerMoves) {
+      return { hasMove: state.outstandingPieceMoves[request.playerId] };
+    } else {
+      return { hasMove: false };
+    }
   }
 }
 

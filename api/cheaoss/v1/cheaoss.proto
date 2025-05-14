@@ -77,6 +77,10 @@ service CheaossMethods {
     rpc Queues(EmptyRequest) returns (QueuesResponse) {
         option (rbt.v1alpha1.method).reader = {};
     }
+
+    rpc HasOutstandingMove(HasOutstandingMoveRequest) returns (HasOutstandingMoveResponse) {
+        option (rbt.v1alpha1.method).reader = {};
+    }
 }
 
 message EmptyRequest {}
@@ -106,6 +110,14 @@ message MoveRequest {
 message QueuesResponse {
     repeated MoveRequest white_moves_queue = 1;
     repeated MoveRequest black_moves_queue = 2;
+}
+
+message HasOutstandingMoveRequest {
+    string player_id = 1;
+}
+
+message HasOutstandingMoveResponse {
+    bool hasMove = 1;
 }
 
 message InvalidMoveError {
