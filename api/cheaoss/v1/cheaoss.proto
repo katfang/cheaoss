@@ -44,6 +44,12 @@ message Piece {
     Location loc = 3;
 }
 
+// Maps gameid-row-col --> pieceid
+message LocPieceIndex {
+    option (rbt.v1alpha1.state) = {};
+    string piece_id = 1;
+}
+
 service CheaossMethods {
     rpc AssignTeam(AssignTeamRequest) returns (AssignTeamResponse) {
         option (rbt.v1alpha1.method).writer = {};
@@ -120,5 +126,19 @@ service PieceMethods {
             writer: {},
             errors: [ "InvalidMoveError" ],
         };
+    }
+}
+
+service LocPieceIndexMethods {
+    rpc Get(EmptyRequest) returns (LocPieceIndex) {
+        option (rbt.v1alpha1.method).reader = {};
+    }
+
+    rpc Set(LocPieceIndex) returns (EmptyResponse) {
+        option (rbt.v1alpha1.method).writer = {};
+    }
+
+    rpc Delete(EmptyRequest) returns (EmptyResponse) {
+        option (rbt.v1alpha1.method).writer = {};
     }
 }
