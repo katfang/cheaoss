@@ -6,6 +6,7 @@ import {
   Cheaoss,
   InitGameRequest,
   Location,
+  LocPieceIndex,
   Piece,
   PieceType,
   Team,
@@ -13,6 +14,8 @@ import {
   BoardPiecesResponse,
   MoveRequest,
   InvalidMoveError,
+  EmptyResponse,
+  LocPieceIndexState,
 } from "../../api/cheaoss/v1/cheaoss_rbt.js";
 
 const BOARD_SIZE = 1; 
@@ -408,4 +411,36 @@ function validateChessMove(piece: Piece.State, end: Location): InvalidMoveError|
   }
 
   return null;
+}
+
+export class LocPieceIndexServicer extends LocPieceIndex.Servicer {
+  async get(
+    context: ReaderContext,
+    state: LocPieceIndex.State,
+    request: EmptyRequest
+  ) {
+    // Two possible responses for there not being an object:
+    // * an error from reboot saying nothing at that index
+    // * empty string for pieceId
+    return state;
+  }
+
+  async set(
+    context: WriterContext,
+    state: LocPieceIndex.State,
+    request: LocPieceIndex.State,
+  ) {
+    state.pieceId = request.pieceId;
+    return {};
+  }
+
+  async delete(
+    context: WriterContext,
+    state: LocPieceIndex.State,
+    request: EmptyRequest
+  ) {
+    // !!! Reboot has no real delete, so the best we can do is set it to empty string
+    state.pieceId = "";
+    return {};
+  }
 }

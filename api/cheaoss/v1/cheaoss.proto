@@ -130,11 +130,11 @@ service PieceMethods {
 }
 
 service LocPieceIndexMethods {
-    rpc Get(EmptyRequest) returns (LocPieceIndex) {
+    rpc Get(EmptyRequest) returns (cheaoss.v1.LocPieceIndex) {
         option (rbt.v1alpha1.method).reader = {};
     }
 
-    rpc Set(LocPieceIndex) returns (EmptyResponse) {
+    rpc Set(cheaoss.v1.LocPieceIndex) returns (EmptyResponse) {
         option (rbt.v1alpha1.method).writer = {};
     }
 
