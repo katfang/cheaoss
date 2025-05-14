@@ -40,14 +40,14 @@ export default function CheaossQueues({
   }
 
   return (
-    <div className="w-full h-full">
-      <div>
+    <div className="w-full h-full grid grid-cols-2 gap-4 text-center">
+      <div className="w-full h-full bg-mid-square text-white-piece p-2">
         <h1>Pending White Moves</h1>
         <ul>
           {whiteMoves}
         </ul>
       </div>
-      <div>
+      <div className="w-full h-full bg-mid-square text-black-piece p-2">
         <h1>Pending Black Moves</h1>
         <ul>
           {blackMoves}

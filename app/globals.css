@@ -6,10 +6,11 @@
 }
 
 @theme {
-  --color-white-square: #ecd4b0;
-  --color-black-square: #ad9065;
-  --color-white-piece: #ffffff;
-  --color-black-piece: #000000;
+  --color-white-square: #e0c396;
+  --color-black-square: #a3865a;
+  --color-mid-square: #C2A578;
+  --color-white-piece: #f2ebe1;
+  --color-black-piece: #59482e;
 }
 
 @theme inline {

@@ -28,6 +28,6 @@ export default function CheaossMeta({
   }, [playerId]);
 
   return (
-    <div className="w-full text-right">Assigned to team {Team[team]}.</div>
+    <div className="w-full h-full text-right">Assigned to team {Team[team]}.</div>
   );
 }

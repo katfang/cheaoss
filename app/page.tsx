@@ -24,14 +24,14 @@ export default function Home() {
   }
 
   return (
-    <div className="grid grid-cols-[1fr_1fr] grid-rows-[20px_1fr] items-center justify-items-center min-h-screen p-8 gap-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+    <div className="grid grid-cols-[auto_1fr] grid-rows-[auto_1fr] min-h-screen gap-4 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <div className="w-full col-span-2 bg-gray-500 p-4">
         <CheaossMeta gameId="singleton" playerId={playerId} />
       </div>
       <div className="w-full h-full bg-gray-500 p-4">
         <CheaossBoard gameId="singleton" playerId={playerId} />
       </div>
-      <div>
+      <div className="w-full h-full bg-gray-500 p-4">
         <CheaossQueues gameId="singleton" playerId={playerId} />
       </div>
     </div>
