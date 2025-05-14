@@ -112,9 +112,14 @@ message InvalidMoveError {
     string message = 1;
 }
 
+message LocationRequiredError {}
+
 service PieceMethods {
     rpc MakePiece(cheaoss.v1.Piece) returns (EmptyResponse) {
-        option (rbt.v1alpha1.method).writer = {};
+        option (rbt.v1alpha1.method) = {
+            transaction: {},
+            errors: [ "LocationRequiredError" ],
+        };
     }
 
     rpc Piece(EmptyRequest) returns (cheaoss.v1.Piece) {
@@ -123,7 +128,7 @@ service PieceMethods {
 
     rpc MovePiece(MoveRequest) returns (EmptyResponse) {
         option (rbt.v1alpha1.method) = {
-            writer: {},
+            transaction: {},
             errors: [ "InvalidMoveError" ],
         };
     }

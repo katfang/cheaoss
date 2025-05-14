@@ -14,8 +14,7 @@ import {
   BoardPiecesResponse,
   MoveRequest,
   InvalidMoveError,
-  EmptyResponse,
-  LocPieceIndexState,
+  LocationRequiredError,
 } from "../../api/cheaoss/v1/cheaoss_rbt.js";
 
 const BOARD_SIZE = 1; 
@@ -343,13 +342,20 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
 export class PieceServicer extends Piece.Servicer {
   async makePiece(
-    context: WriterContext,
+    context: TransactionContext,
     state: Piece.State,
     request: Piece.State
   ) {
+    if (request.loc === undefined) {
+      throw new Piece.MakePieceAborted(new LocationRequiredError());
+    }
     state.team = request.team;
     state.type = request.type;
     state.loc = request.loc;
+    await pieceToLocIdRef(context.stateId, state.loc).set(
+      context,
+      { pieceId: context.stateId }
+    );
     return {};
   }
 
@@ -362,7 +368,7 @@ export class PieceServicer extends Piece.Servicer {
   }
 
   async movePiece(
-    context: WriterContext,
+    context: TransactionContext,
     state: Piece.State,
     request: MoveRequest
   ) {
@@ -386,7 +392,16 @@ export class PieceServicer extends Piece.Servicer {
     const check = validateChessMove(state, request.end);
     if (check === null) {
       console.log("Moving the piece", state, request)
+
+      // update the location
       state.loc = request.end;
+
+      // update the idnex
+      await pieceToLocIdRef(context.stateId, request.start).delete(context);
+      await pieceToLocIdRef(context.stateId, request.end).set(
+        context,
+        { pieceId: context.stateId }
+      );
       return {};
     } else {
       throw new Piece.MovePieceAborted(check);
@@ -412,6 +427,14 @@ function validateChessMove(piece: Piece.State, end: Location): InvalidMoveError|
 
   return null;
 }
+
+function pieceToLocIdRef(pieceId: string, loc: Location) {
+  // clean abstraction wise, I hate the string-split, but it will in fact get us the game id
+  let gameId = pieceId.split("-", 1)[0];
+  let locId = `${gameId}-${loc.row}-${loc.col}`;
+  return LocPieceIndex.ref(locId);
+}
+
 
 export class LocPieceIndexServicer extends LocPieceIndex.Servicer {
   async get(
