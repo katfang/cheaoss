@@ -345,7 +345,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
     request: HasOutstandingMoveRequest
   ) {
     if (request.playerId in state.outstandingPlayerMoves) {
-      return { hasMove: state.outstandingPieceMoves[request.playerId] };
+      return { hasMove: state.outstandingPlayerMoves[request.playerId] };
     } else {
       return { hasMove: false };
     }

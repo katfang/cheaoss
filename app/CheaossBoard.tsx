@@ -15,10 +15,12 @@ export default function CheaossBoard({
   // TODO: probably pass from above?
   const cheaossRef = useCheaoss({ id: gameId });
   const boardPieces = cheaossRef.useBoardPieces();
+  const hasOutstandingMove = cheaossRef.useHasOutstandingMove({ playerId: playerId });
   const [startLoc, setStartLoc] = useState<Location | null>(null);
   const [endLoc, setEndLoc] = useState<Location | null>(null);
+  const [savedHasMove, setSavedHasMove] = useState(false);
 
-  if (boardPieces.response === undefined) {
+  if (boardPieces.response === undefined || hasOutstandingMove.response === undefined) {
     return "still loading";
   }
 
@@ -39,9 +41,26 @@ export default function CheaossBoard({
           alert(aborted.error.message);
           setStartLoc(null);
           setEndLoc(null);
+        // } else {
+        //   setSavedHasMove(true); // at this point, the server value is true, so if we get a new value from the server, it hsould be true
         }
         // if it's a valid move, then we want to keep showing the current move
       }
+    }
+  }
+
+  // TODO: well this code totally borks it
+  console.log("!!!", hasOutstandingMove.response.hasMove);
+  if (savedHasMove !== hasOutstandingMove.response.hasMove) {
+    setSavedHasMove(hasOutstandingMove.response.hasMove);
+    if (!hasOutstandingMove.response.hasMove) {
+      // TODO: is it possible to
+      // 1. queueMove starts
+      // 2. get hasMove = false --> clear the move visually
+      // 3. queueMove ends --> now has the outstandng move
+      // 4. get hasMove = true, but we no longer know what the state of the move is.
+      setStartLoc(null);
+      setEndLoc(null);
     }
   }
 
