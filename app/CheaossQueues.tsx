@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { useCheaoss, Piece, Location, InvalidMoveError } from "../api/cheaoss/v1/cheaoss_rbt_react"
+
+import { useGame } from "../api/cheaoss/v1/game_rbt_react"
 
 export default function CheaossQueues({
   gameId,
@@ -10,7 +10,7 @@ export default function CheaossQueues({
   playerId: string
 }) {
   // TODO: probably pass from above?
-  const cheaossRef = useCheaoss({ id: gameId });
+  const cheaossRef = useGame({ id: gameId });
   const queues = cheaossRef.useQueues();
 
   if (queues.response === undefined) {

@@ -1,6 +1,9 @@
 "use client";
+
 import { useState } from "react";
-import { useCheaoss, Piece, Location, InvalidMoveError } from "../api/cheaoss/v1/cheaoss_rbt_react"
+import { useGame } from "../api/cheaoss/v1/game_rbt_react"
+import { Location, InvalidMoveError } from "../api/cheaoss/v1/move_pb"
+import { Piece } from "../api/cheaoss/v1/piece_rbt_react"
 
 import CheaossSquare from "./CheaossSquare";
 import { rcToLocKey, locToLocKey } from "./utils"
@@ -13,7 +16,7 @@ export default function CheaossBoard({
   playerId: string
 }) {
   // TODO: probably pass from above?
-  const cheaossRef = useCheaoss({ id: gameId });
+  const cheaossRef = useGame({ id: gameId });
   const boardPieces = cheaossRef.useBoardPieces();
   const hasOutstandingMove = cheaossRef.useHasOutstandingMove({ playerId: playerId });
   const [startLoc, setStartLoc] = useState<Location | null>(null);

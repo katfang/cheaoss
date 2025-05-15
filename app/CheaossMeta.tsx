@@ -1,6 +1,8 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import { useCheaoss, Team } from "../api/cheaoss/v1/cheaoss_rbt_react";
+import { useGame } from "../api/cheaoss/v1/game_rbt_react";
+import { Team } from "../api/cheaoss/v1/cheaoss_pb";
 import Error from "./Error";
 
 export default function CheaossMeta({
@@ -10,7 +12,7 @@ export default function CheaossMeta({
   gameId: string,
   playerId: string
 }) {
-  const { assignTeam } = useCheaoss({id: gameId});
+  const { assignTeam } = useGame({id: gameId});
   let [team, setTeam] = useState(Team.WHITE);
 
   useEffect(() => {

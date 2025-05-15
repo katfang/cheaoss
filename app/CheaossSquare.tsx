@@ -1,6 +1,7 @@
 "use client";
 
-import { Piece, PieceType, Team } from "../api/cheaoss/v1/cheaoss_rbt_react"
+import { Team } from "../api/cheaoss/v1/cheaoss_pb"
+import { Piece, PieceType } from "../api/cheaoss/v1/piece_rbt_react"
 
 const UNICODE_PIECES = new Map<PieceType, string>();
 UNICODE_PIECES.set(PieceType.PIECES_TYPE_UNKNOWN, "X");

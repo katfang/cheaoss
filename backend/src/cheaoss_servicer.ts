@@ -2,21 +2,24 @@ import { ReaderContext, TransactionContext, WriterContext } from "@reboot-dev/re
 
 import {
   AssignTeamRequest,
-  EmptyRequest,
-  Cheaoss,
-  InitGameRequest,
+  BoardPiecesResponse,
+  Game,
+  HasOutstandingMoveRequest,
+  InitGameRequest
+} from "../../api/cheaoss/v1/game_rbt.js"
+import {
+  InvalidMoveError,
   Location,
+  LocationRequiredError,
+  MoveRequest
+} from "../../api/cheaoss/v1/move_pb.js"
+import {
   LocPieceIndex,
   Piece,
   PieceType,
-  Team,
-  CheaossState,
-  BoardPiecesResponse,
-  MoveRequest,
-  InvalidMoveError,
-  LocationRequiredError,
-  HasOutstandingMoveRequest,
-} from "../../api/cheaoss/v1/cheaoss_rbt.js";
+} from "../../api/cheaoss/v1/piece_rbt.js"
+import { EmptyRequest } from "../../api/cheaoss/v1/util_pb.js"
+import { Team } from "../../api/cheaoss/v1/cheaoss_pb.js";
 
 const BOARD_SIZE = 1; 
 const BACK_ROW: PieceType[] = [
@@ -69,11 +72,11 @@ function flipTeam(team: Team): Team {
   else return Team.TEAM_UNKNOWN;
 }
 
-export class CheaossServicer extends Cheaoss.Servicer {
+export class GameServicer extends Game.Servicer {
 
   async assignTeam(
     context: WriterContext,
-    state: Cheaoss.State,
+    state: Game.State,
     request: AssignTeamRequest
   ) {
     // if we've seen the player before, return their existing team
@@ -91,7 +94,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
   async initGame(
     context: TransactionContext,
-    state: Cheaoss.State,
+    state: Game.State,
     request: InitGameRequest
   ) {
     let keysList: string[][] = [];
@@ -179,7 +182,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
   async boardPieces(
     context: ReaderContext,
-    state: CheaossState,
+    state: Game.State,
     request: EmptyRequest
   ) {
     const response = new BoardPiecesResponse();
@@ -201,7 +204,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
   async queueMove(
     context: WriterContext,
-    state: Cheaoss.State,
+    state: Game.State,
     request: MoveRequest
   ) {
     let pieceRef = Piece.ref(request.pieceId);
@@ -213,7 +216,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
       // you get a `PiecePieceAborted: rbt.v1alpha1.StateNotConstructed`
       // which I guess ... is sort of handled ... in that it'll throw before we get here.
       // TODO: this might actually swallow more than we expect.
-      throw new Cheaoss.QueueMoveAborted(
+      throw new Game.QueueMoveAborted(
         new InvalidMoveError({
           message: "Piece not found"
         })
@@ -223,14 +226,14 @@ export class CheaossServicer extends Cheaoss.Servicer {
     // Outstanding moves check
     if (request.playerId in state.outstandingPlayerMoves) {
       // Make sure each player only has one move outstanding
-      throw new Cheaoss.QueueMoveAborted(
+      throw new Game.QueueMoveAborted(
         new InvalidMoveError({
           message: "You already have a move outstanding."
         })
       );
     } else if (request.pieceId in state.outstandingPieceMoves) {
       // Make sure each piece has one move outstanding
-      throw new Cheaoss.QueueMoveAborted(
+      throw new Game.QueueMoveAborted(
         new InvalidMoveError({
           message: "This piece is already getting moved by someone else."
         })
@@ -239,7 +242,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
     // Data validation check
     if (request.start === undefined || request.end === undefined) {
-      throw new Cheaoss.QueueMoveAborted(
+      throw new Game.QueueMoveAborted(
         new InvalidMoveError({
           message: "Move requests must have a start and an end"
         })
@@ -248,13 +251,13 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
     // Chess logic checks
     if (state.players[request.playerId] !== piece.team) {
-      throw new Cheaoss.QueueMoveAborted(
+      throw new Game.QueueMoveAborted(
         new InvalidMoveError({
           message: "You can only move your team's pieces."
         })
       );
     } else if (piece.loc?.row !== request.start.row || piece.loc?.col !== request.start.col) {
-        throw new Cheaoss.QueueMoveAborted(
+        throw new Game.QueueMoveAborted(
           new InvalidMoveError({
             message: "That piece isn't there anymore."
           })
@@ -264,7 +267,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
       pieceToCheck.copyFrom(piece); // TODO: some left over troubles from the fact I called it PieceMethod.Piece & have a message caleld Piece
       const check = validateChessMove(pieceToCheck, request.end);
       if (check !== null) {
-        throw new Cheaoss.QueueMoveAborted(
+        throw new Game.QueueMoveAborted(
           new InvalidMoveError({
             message: "Invalid chess move."
           })
@@ -287,7 +290,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
   async runQueue(
     context: TransactionContext,
-    state: Cheaoss.State,
+    state: Game.State,
     request: EmptyRequest
   ) {
     // TODO: check if this works. We're trying to grab the queue
@@ -330,7 +333,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
   async queues(
     context: ReaderContext,
-    state: Cheaoss.State,
+    state: Game.State,
     request: EmptyRequest
   ) {
     return {
@@ -341,7 +344,7 @@ export class CheaossServicer extends Cheaoss.Servicer {
 
   async hasOutstandingMove(
     context: ReaderContext,
-    state: Cheaoss.State,
+    state: Game.State,
     request: HasOutstandingMoveRequest
   ) {
     if (request.playerId in state.outstandingPlayerMoves) {

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package cheaoss.v1;
+
+message Location {
+    uint32 row = 1;
+    uint32 col = 2;
+}
+
+message MoveRequest {
+    string player_id = 1;
+    string piece_id = 2;
+    Location start = 3;
+    Location end = 4;
+}
+
+message InvalidMoveError {
+    string message = 1;
+}
+
+message LocationRequiredError {}
