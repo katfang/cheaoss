@@ -40,6 +40,7 @@ export class PieceServicer extends Piece.Servicer {
     state.team = request.team;
     state.type = request.type;
     state.loc = request.loc;
+    state.hasMoved = false;
     await pieceToLocIdRef(context.stateId, state.loc).set(
       context,
       { pieceId: context.stateId }
@@ -77,10 +78,13 @@ export class PieceServicer extends Piece.Servicer {
       );
     }
 
-    const check = validateChessMove(state, request.end);
-    if (check === null) {
+    const check = validateMovementPattern(state, request.end);
+    if (check instanceof InvalidMoveError) {
+      throw new Piece.MovePieceAborted(check);
+    } else {
       // update the location
       state.loc = request.end;
+      state.hasMoved = true;
 
       // update the idnex
       await pieceToLocIdRef(context.stateId, request.start).deleter(context);
@@ -89,13 +93,26 @@ export class PieceServicer extends Piece.Servicer {
         { pieceId: context.stateId }
       );
       return {};
-    } else {
-      throw new Piece.MovePieceAborted(check);
     }
   }
 }
 
-export function validateChessMove(piece: Piece.State, end: Location): InvalidMoveError|null {
+enum MoveValidation {
+  UNKNOWN = 0,
+  INVALID,
+  PASSED,
+
+  // for pawns, this means *every* space must be empty
+  // for other pieces, there can be a piece at the end.
+  CHECK_NO_OBSTACLES,
+  // a pawn can only move diagonally if it takes a piece or via en passant (ignoring en passant for now)
+  CHECK_PAWN_DIAGONAL,
+}
+
+/**
+ * This DOES NOT check if other pieces are in the way.
+ */
+export function validateMovementPattern(piece: Piece.State, end: Location, context?: ReaderContext): InvalidMoveError|MoveValidation {
   switch (piece.type as PieceType) {
     case PieceType.PAWN:
       // TODO: allow 2 spaces initially
@@ -103,13 +120,26 @@ export function validateChessMove(piece: Piece.State, end: Location): InvalidMov
       // TODO: disallow moving forward if something else is there
       // can only move inc row by 1 if white, dec row by 1 if black.
       let direction = (piece.team === Team.WHITE) ? 1 : -1;
-      if (piece.loc?.row !== end.row - direction || piece.loc?.col !== end.col) {
-        return  new InvalidMoveError({
-          message: "Pawns must move forward in their own column."
-        })
+      if (piece.loc?.row === end.row - direction) {
+        if (piece.loc?.col === end.col) {
+          // moved one space
+          return MoveValidation.CHECK_NO_OBSTACLES;
+        } else if (Math.abs(piece.loc?.col - end.col) === 1) {
+          // move diagonally
+          return MoveValidation.CHECK_PAWN_DIAGONAL;
+        }
+      } else if (!piece.hasMoved && piece.loc?.row === end.row - (2*direction) && piece.loc?.col === end.col) {
+        // moved two spaces
+        return MoveValidation.CHECK_NO_OBSTACLES;
       }
-      break;
+      return  new InvalidMoveError({
+        message: "Pawns must move forward in their own column."
+      })
   }
+  return MoveValidation.PASSED;
+}
+
+export function validateChessMove(piece: Piece.State, end: Location, context?: ReaderContext): InvalidMoveError|null {
 
   return null;
 }

@@ -22,6 +22,7 @@ message Piece {
     cheaoss.v1.Team team = 1;
     PieceType type = 2;
     cheaoss.v1.Location loc = 3;
+    bool has_moved = 4;
 }
 
 service PieceMethods {

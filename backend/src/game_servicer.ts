@@ -25,7 +25,7 @@ import {
 
 import { EmptyRequest } from "../../api/cheaoss/v1/util_pb.js"
 import { Team } from "../../api/cheaoss/v1/cheaoss_pb.js";
-import { validateChessMove } from "./piece_servicer.js";
+import { validateMovementPattern } from "./piece_servicer.js";
 
 const BOARD_SIZE = 1; 
 const BACK_ROW: PieceType[] = [
@@ -264,8 +264,8 @@ export class GameServicer extends Game.Servicer {
     } else {
       const pieceToCheck = new Piece.State();
       pieceToCheck.copyFrom(piece); // TODO: some left over troubles from the fact I called it PieceMethod.Piece & have a message caleld Piece
-      const check = validateChessMove(pieceToCheck, request.end);
-      if (check !== null) {
+      const check = validateMovementPattern(pieceToCheck, request.end);
+      if (check instanceof InvalidMoveError) {
         throw new Game.QueueMoveAborted(
           new InvalidMoveError({
             message: "Invalid chess move."
