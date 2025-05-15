@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGame } from "../api/cheaoss/v1/game_rbt_react"
-import { Location, InvalidMoveError } from "../api/cheaoss/v1/move_pb"
+import { Location, InvalidMoveError, MoveStatus } from "../api/cheaoss/v1/move_pb"
 import { Piece } from "../api/cheaoss/v1/piece_rbt_react"
 
 import CheaossSquare from "./CheaossSquare";
@@ -18,12 +18,30 @@ export default function CheaossBoard({
   // TODO: probably pass from above?
   const cheaossRef = useGame({ id: gameId });
   const boardPieces = cheaossRef.useBoardPieces();
-  const hasOutstandingMove = cheaossRef.useHasOutstandingMove({ playerId: playerId });
+  const outstandingMoves = cheaossRef.useGetOutstandingMoves({ playerId: playerId });
   const [startLoc, setStartLoc] = useState<Location | null>(null);
   const [endLoc, setEndLoc] = useState<Location | null>(null);
-  const [savedHasMove, setSavedHasMove] = useState(false);
 
-  if (boardPieces.response === undefined || hasOutstandingMove.response === undefined) {
+  // This has to happen first due to hooks having to be run first
+  useEffect(() => {
+    async function ackMoves() {
+      if (outstandingMoves.response === undefined ) {
+        return;
+      }
+      if (Object.keys(outstandingMoves.response.moves).length > 0) {
+        for (const [moveId, move] of Object.entries(outstandingMoves.response.moves)) {
+          if (move.status === MoveStatus.MOVE_EXECUTED) {
+            await cheaossRef.ackMove({ moveId: moveId, playerId: playerId })
+            setStartLoc(null);
+            setEndLoc(null);
+          }
+        }
+      }
+    }
+    ackMoves();
+  }, [outstandingMoves.response]);
+
+  if (boardPieces.response === undefined || outstandingMoves.response === undefined) {
     return "still loading";
   }
 
@@ -49,21 +67,6 @@ export default function CheaossBoard({
         }
         // if it's a valid move, then we want to keep showing the current move
       }
-    }
-  }
-
-  // TODO: well this code totally borks it
-  console.log("!!!", hasOutstandingMove.response.hasMove);
-  if (savedHasMove !== hasOutstandingMove.response.hasMove) {
-    setSavedHasMove(hasOutstandingMove.response.hasMove);
-    if (!hasOutstandingMove.response.hasMove) {
-      // TODO: is it possible to
-      // 1. queueMove starts
-      // 2. get hasMove = false --> clear the move visually
-      // 3. queueMove ends --> now has the outstandng move
-      // 4. get hasMove = true, but we no longer know what the state of the move is.
-      setStartLoc(null);
-      setEndLoc(null);
     }
   }
 

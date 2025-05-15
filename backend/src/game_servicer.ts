@@ -1,17 +1,17 @@
 import { ReaderContext, TransactionContext, WriterContext } from "@reboot-dev/reboot";
 
 import {
+  AckMoveRequest,
   AssignTeamRequest,
   BoardPiecesResponse,
   Game,
-  HasOutstandingMoveRequest,
-  InitGameRequest
+  GetOutstandingMovesRequest,
+  InitGameRequest,
+  ListOfMoves
 } from "../../api/cheaoss/v1/game_rbt.js"
 
 import {
   InvalidMoveError,
-  Location,
-  LocationRequiredError,
   Move,
   MoveRequest,
   MoveStatus
@@ -230,14 +230,7 @@ export class GameServicer extends Game.Servicer {
     }
 
     // Outstanding moves check
-    if (request.playerId in state.outstandingPlayerMoves) {
-      // Make sure each player only has one move outstanding
-      throw new Game.QueueMoveAborted(
-        new InvalidMoveError({
-          message: "You already have a move outstanding."
-        })
-      );
-    } else if (request.pieceId in state.outstandingPieceMoves) {
+    if (request.pieceId in state.outstandingPieceMoves) {
       // Make sure each piece has one move outstanding
       throw new Game.QueueMoveAborted(
         new InvalidMoveError({
@@ -286,8 +279,6 @@ export class GameServicer extends Game.Servicer {
     } else if (state.players[request.playerId] == Team.BLACK) {
       state.blackMovesQueue.push(request);
     }
-    state.outstandingPieceMoves[request.pieceId] = true;
-    state.outstandingPlayerMoves[request.playerId] = true;
 
     // store the move
     let moveId = `${request.playerId}-${request.pieceId}`;
@@ -301,6 +292,14 @@ export class GameServicer extends Game.Servicer {
         status: MoveStatus.MOVE_QUEUED
       }
     )
+
+    // update the indices
+    state.outstandingPieceMoves[request.pieceId] = true;
+    if (request.playerId in state.outstandingPlayerMoves) {
+      state.outstandingPlayerMoves[request.playerId].moveIds.push(moveId);
+    } else {
+      state.outstandingPlayerMoves[request.playerId] = new ListOfMoves({ moveIds: [moveId] });;
+    }
 
     await this.ref().schedule().runQueue(context);
 
@@ -348,8 +347,8 @@ export class GameServicer extends Game.Servicer {
     state.nextTeamToMove = flipTeam(state.nextTeamToMove);
 
     // remove from indices
+    // DO NOT remove from player index: AckMove will do that instead b/c we need to make sure the client knows the move has been executed or errored.
     delete state.outstandingPieceMoves[move.pieceId]
-    delete state.outstandingPlayerMoves[move.playerId]
     await Move.ref(`${move.playerId}-${move.pieceId}`).setStatus(context, { status: MoveStatus.MOVE_EXECUTED });
 
     // check if there's more moves to run, if so, run the queue in half a second
@@ -374,15 +373,36 @@ export class GameServicer extends Game.Servicer {
     }
   }
 
-  async hasOutstandingMove(
+  async getOutstandingMoves(
     context: ReaderContext,
     state: Game.State,
-    request: HasOutstandingMoveRequest
+    request: GetOutstandingMovesRequest
   ) {
+    let moves: { [id: string ]: Move }= {};
     if (request.playerId in state.outstandingPlayerMoves) {
-      return { hasMove: state.outstandingPlayerMoves[request.playerId] };
-    } else {
-      return { hasMove: false };
+      let moveIds = state.outstandingPlayerMoves[request.playerId].moveIds;
+      // collect all the moves
+      for (const moveId of moveIds) {
+        moves[moveId] = await Move.ref(moveId).get(context);
+      }
     }
+    return { moves: moves };
+  }
+
+  async ackMove(
+    context: TransactionContext,
+    state: Game.State,
+    request: AckMoveRequest
+  ) {
+    if (!(request.playerId in state.outstandingPlayerMoves)) {
+      // there's no moves to acknowledge, what are we doing here.
+      return {};
+    }
+
+    await Move.ref(request.moveId).clear(context);
+    let moveIds = state.outstandingPlayerMoves[request.playerId].moveIds;
+    let slice = moveIds.filter(moveId => moveId != request.moveId);
+    state.outstandingPlayerMoves[request.playerId] = new ListOfMoves({ moveIds: slice });
+    return {};
   }
 }

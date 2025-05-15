@@ -16,8 +16,12 @@ message Game {
     map<string, cheaoss.v1.Team> players = 4;
     repeated cheaoss.v1.MoveRequest white_moves_queue = 5;
     repeated cheaoss.v1.MoveRequest black_moves_queue = 6;
-    map<string, bool> outstanding_player_moves = 7;
+    map<string, ListOfMoves> outstanding_player_moves = 7;
     map<string, bool> outstanding_piece_moves = 8;
+}
+
+message ListOfMoves {
+    repeated string move_ids = 1;
 }
 
 service GameMethods {
@@ -48,8 +52,12 @@ service GameMethods {
         option (rbt.v1alpha1.method).reader = {};
     }
 
-    rpc HasOutstandingMove(HasOutstandingMoveRequest) returns (HasOutstandingMoveResponse) {
+    rpc GetOutstandingMoves(GetOutstandingMovesRequest) returns (GetOutstandingMovesResponse) {
         option (rbt.v1alpha1.method).reader = {};
+    }
+
+    rpc AckMove(AckMoveRequest) returns (cheaoss.v1.EmptyResponse) {
+        option (rbt.v1alpha1.method).transaction = {};
     }
 }
 
@@ -76,10 +84,15 @@ message QueuesResponse {
     repeated cheaoss.v1.MoveRequest black_moves_queue = 2;
 }
 
-message HasOutstandingMoveRequest {
+message GetOutstandingMovesRequest {
     string player_id = 1;
 }
 
-message HasOutstandingMoveResponse {
-    bool hasMove = 1;
+message GetOutstandingMovesResponse {
+    map<string, cheaoss.v1.Move> moves = 1;
+}
+
+message AckMoveRequest {
+    string move_id = 1;
+    string player_id = 2;
 }
