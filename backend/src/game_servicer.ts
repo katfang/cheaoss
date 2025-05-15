@@ -326,10 +326,22 @@ export class GameServicer extends Game.Servicer {
     try {
       await Piece.ref(move.pieceId).movePiece(context, move);
     } catch (e) {
-      // TODO: check that this is a Piece.MovePieceAborted(InvalidMoveError)
-      // sort of error and not something else.
-      // TODO: ppossibly should add this to a list of errors that the user can see
-      console.log("error in runQueue", e);
+      let handled = false;
+      if (e instanceof Piece.MovePieceAborted) {
+        if (e.error instanceof InvalidMoveError) {
+          handled = true;
+          await Move.ref(`${move.playerId}-${move.pieceId}`).setStatus(
+            context,
+            {
+              status: MoveStatus.MOVE_ERRORED,
+              error: e.error.message
+            }
+          );
+        }
+      }
+      if (!handled) {
+        console.error("unhandled error in runQueue", e);
+      }
     }
 
     // flip the team who can play
@@ -338,6 +350,7 @@ export class GameServicer extends Game.Servicer {
     // remove from indices
     delete state.outstandingPieceMoves[move.pieceId]
     delete state.outstandingPlayerMoves[move.playerId]
+    await Move.ref(`${move.playerId}-${move.pieceId}`).setStatus(context, { status: MoveStatus.MOVE_EXECUTED });
 
     // check if there's more moves to run, if so, run the queue in half a second
     const otherQueue = (state.nextTeamToMove === Team.WHITE) ? state.whiteMovesQueue : state.blackMovesQueue;

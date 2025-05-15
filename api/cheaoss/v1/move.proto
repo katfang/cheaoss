@@ -25,6 +25,7 @@ message Move {
     Location start = 3;
     Location end = 4;
     MoveStatus status = 5;
+    string error = 6;
 }
 
 service MoveMethods {
@@ -55,6 +56,7 @@ message MoveRequest {
 
 message SetStatusRequest {
     MoveStatus status = 1;
+    string error = 2;
 }
 
 message InvalidMoveError {
