@@ -33,9 +33,9 @@ service GameMethods {
         option (rbt.v1alpha1.method).reader = {};
     }
 
-    rpc QueueMove(cheaoss.v1.MoveRequest) returns (cheaoss.v1.EmptyResponse) {
+    rpc QueueMove(cheaoss.v1.MoveRequest) returns (cheaoss.v1.QueueMoveResponse) {
         option (rbt.v1alpha1.method) = {
-            writer: {},
+            transaction: {},
             errors: [ "cheaoss.v1.InvalidMoveError" ],
         };
     }
@@ -65,6 +65,10 @@ message InitGameRequest {}
 
 message BoardPiecesResponse {
     map<string, cheaoss.v1.Piece> pieces = 1;
+}
+
+message QueueMoveResponse {
+    string move_id = 1;
 }
 
 message QueuesResponse {

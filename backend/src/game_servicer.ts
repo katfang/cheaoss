@@ -12,8 +12,10 @@ import {
   InvalidMoveError,
   Location,
   LocationRequiredError,
-  MoveRequest
-} from "../../api/cheaoss/v1/move_pb.js"
+  Move,
+  MoveRequest,
+  MoveStatus
+} from "../../api/cheaoss/v1/move_rbt.js"
 
 import {
   LocPieceIndex,
@@ -207,7 +209,7 @@ export class GameServicer extends Game.Servicer {
   }
 
   async queueMove(
-    context: WriterContext,
+    context: TransactionContext,
     state: Game.State,
     request: MoveRequest
   ) {
@@ -287,9 +289,22 @@ export class GameServicer extends Game.Servicer {
     state.outstandingPieceMoves[request.pieceId] = true;
     state.outstandingPlayerMoves[request.playerId] = true;
 
+    // store the move
+    let moveId = `${request.playerId}-${request.pieceId}`;
+    await Move.ref(moveId).store(
+      context,
+      {
+        playerId: request.playerId,
+        pieceId: request.pieceId,
+        start: request.start,
+        end: request.end,
+        status: MoveStatus.MOVE_QUEUED
+      }
+    )
+
     await this.ref().schedule().runQueue(context);
 
-    return {};
+    return { moveId: moveId };
   }
 
   async runQueue(
