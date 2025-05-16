@@ -9,7 +9,6 @@ export class MoveServicer extends Move.Servicer {
     state: Move.State,
     request: Move.State
   ) {
-    console.log(request);
     state.playerId = request.playerId;
     state.pieceId = request.pieceId;
     state.start = request.start;

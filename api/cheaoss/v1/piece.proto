@@ -43,6 +43,10 @@ service PieceMethods {
             errors: [ "cheaoss.v1.InvalidMoveError" ],
         };
     }
+
+    rpc Remove(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.EmptyResponse) {
+        option (rbt.v1alpha1.method).transaction = {};
+    }
 }
 
 // Maps gameid-row-col --> pieceid
@@ -60,7 +64,7 @@ service LocPieceIndexMethods {
         option (rbt.v1alpha1.method).writer = {};
     }
 
-    rpc Deleter(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.EmptyResponse) {
+    rpc Clear(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.EmptyResponse) {
         option (rbt.v1alpha1.method).writer = {};
     }
 }

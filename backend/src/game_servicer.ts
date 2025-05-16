@@ -120,6 +120,9 @@ export class GameServicer extends Game.Servicer {
     state.outstandingPlayerMoves = {};
     state.outstandingPieceMoves = {};
 
+    // TODO: clear LocPieceIndex
+    // TODO: clear moves state
+
     return {};
   }
 
@@ -264,13 +267,9 @@ export class GameServicer extends Game.Servicer {
     } else {
       const pieceToCheck = new Piece.State();
       pieceToCheck.copyFrom(piece); // TODO: some left over troubles from the fact I called it PieceMethod.Piece & have a message caleld Piece
-      const check = validateMovementPattern(pieceToCheck, request.end);
+      const check = validateMovementPattern(pieceToCheck, request.start, request.end);
       if (check instanceof InvalidMoveError) {
-        throw new Game.QueueMoveAborted(
-          new InvalidMoveError({
-            message: "Invalid chess move."
-          })
-        );
+        throw new Game.QueueMoveAborted(check);
       }
     }
 
@@ -321,35 +320,47 @@ export class GameServicer extends Game.Servicer {
 
     // take the move and make it
     let move = queue.shift();
+    let moveSucceded = false;
     if (move === undefined) { return {}; } // not possible since length > 0, but making the wiggly lines happy
     try {
-      await Piece.ref(move.pieceId).movePiece(context, move);
+      await Piece.ref(move.pieceId).idempotently().movePiece(context, move);
+      moveSucceded = true;
     } catch (e) {
       let handled = false;
       if (e instanceof Piece.MovePieceAborted) {
+        // Move failed for some reason, remove it from indices
         if (e.error instanceof InvalidMoveError) {
+          delete state.outstandingPieceMoves[move.pieceId];
+          await Move.ref(`${move.playerId}-${move.pieceId}`)
+            .idempotently()
+            .setStatus(
+              context,
+              {
+                status: MoveStatus.MOVE_ERRORED,
+                error: e.error.message
+              }
+            );
           handled = true;
-          await Move.ref(`${move.playerId}-${move.pieceId}`).setStatus(
-            context,
-            {
-              status: MoveStatus.MOVE_ERRORED,
-              error: e.error.message
-            }
-          );
         }
       }
       if (!handled) {
         console.error("unhandled error in runQueue", e);
+        throw e;
       }
     }
 
-    // flip the team who can play
-    state.nextTeamToMove = flipTeam(state.nextTeamToMove);
+    // if the move succeeds, change which team gets to play, and mark move as executed.
+    if (moveSucceded) {
+      // flip the team who can play
+      state.nextTeamToMove = flipTeam(state.nextTeamToMove);
 
-    // remove from indices
-    // DO NOT remove from player index: AckMove will do that instead b/c we need to make sure the client knows the move has been executed or errored.
-    delete state.outstandingPieceMoves[move.pieceId]
-    await Move.ref(`${move.playerId}-${move.pieceId}`).setStatus(context, { status: MoveStatus.MOVE_EXECUTED });
+      // remove from indices
+      // DO NOT remove from player index: AckMove will do that instead b/c we need to make sure the client knows the move has been executed or errored.
+      delete state.outstandingPieceMoves[move.pieceId];
+      await Move.ref(`${move.playerId}-${move.pieceId}`)
+        .idempotently()
+        .setStatus(context, { status: MoveStatus.MOVE_EXECUTED });
+    }
 
     // check if there's more moves to run, if so, run the queue in half a second
     const otherQueue = (state.nextTeamToMove === Team.WHITE) ? state.whiteMovesQueue : state.blackMovesQueue;
