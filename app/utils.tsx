@@ -1,4 +1,4 @@
-import { Location } from "../api/cheaoss/v1/cheaoss_rbt_react"
+import { Location } from "./api/cheaoss/v1/move_rbt_react"
 
 export function locToLocKey(loc: Location) : string {
   return `${loc.row}-${loc.col}`;

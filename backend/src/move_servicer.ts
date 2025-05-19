@@ -1,6 +1,6 @@
 import { ReaderContext, WriterContext } from "@reboot-dev/reboot";
-import { EmptyRequest } from "../../api/cheaoss/v1/util_pb.js"
-import { Move, MoveStatus, SetStatusRequest } from "../../api/cheaoss/v1/move_rbt.js";
+import { EmptyRequest } from "../api/cheaoss/v1/util_pb.js"
+import { Move, MoveStatus, SetStatusRequest } from "../api/cheaoss/v1/move_rbt.js";
 
 export class MoveServicer extends Move.Servicer {
 

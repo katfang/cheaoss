@@ -5,16 +5,16 @@ import {
   Location,
   LocationRequiredError,
   MoveRequest
-} from "../../api/cheaoss/v1/move_pb.js"
+} from "../api/cheaoss/v1/move_pb.js"
 
 import {
   LocPieceIndex,
   Piece,
   PieceType,
-} from "../../api/cheaoss/v1/piece_rbt.js"
+} from "../api/cheaoss/v1/piece_rbt.js"
 
-import { EmptyRequest, EmptyResponse } from "../../api/cheaoss/v1/util_pb.js"
-import { Team } from "../../api/cheaoss/v1/cheaoss_pb.js";
+import { EmptyRequest, EmptyResponse } from "../api/cheaoss/v1/util_pb.js"
+import { Team } from "../api/cheaoss/v1/cheaoss_pb.js";
 import { errors_pb } from "@reboot-dev/reboot-api";
 
 const BOARD_SIZE = 1; 

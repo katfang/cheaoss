@@ -1,6 +1,6 @@
 protoc api/
-protoc --nodejs=api/
-protoc --react=api/
+protoc --nodejs=backend/api/
+protoc --react=app/api/
 
 dev run --name=cheaoss
 dev run --watch=backend/src/**/*.ts

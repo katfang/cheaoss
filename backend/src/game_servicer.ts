@@ -8,23 +8,23 @@ import {
   GetOutstandingMovesRequest,
   InitGameRequest,
   ListOfMoves
-} from "../../api/cheaoss/v1/game_rbt.js"
+} from "../api/cheaoss/v1/game_rbt.js"
 
 import {
   InvalidMoveError,
   Move,
   MoveRequest,
   MoveStatus
-} from "../../api/cheaoss/v1/move_rbt.js"
+} from "../api/cheaoss/v1/move_rbt.js"
 
 import {
   LocPieceIndex,
   Piece,
   PieceType,
-} from "../../api/cheaoss/v1/piece_rbt.js"
+} from "../api/cheaoss/v1/piece_rbt.js"
 
-import { EmptyRequest } from "../../api/cheaoss/v1/util_pb.js"
-import { Team } from "../../api/cheaoss/v1/cheaoss_pb.js";
+import { EmptyRequest } from "../api/cheaoss/v1/util_pb.js"
+import { Team } from "../api/cheaoss/v1/cheaoss_pb.js";
 import { validateMovementPattern } from "./piece_servicer.js";
 
 const BOARD_SIZE = 1; 

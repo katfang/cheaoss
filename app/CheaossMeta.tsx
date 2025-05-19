@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useGame } from "../api/cheaoss/v1/game_rbt_react";
-import { Team } from "../api/cheaoss/v1/cheaoss_pb";
+import { useGame } from "./api/cheaoss/v1/game_rbt_react";
+import { Team } from "./api/cheaoss/v1/cheaoss_pb";
 import Error from "./Error";
 
 export default function CheaossMeta({

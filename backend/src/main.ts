@@ -1,5 +1,5 @@
 import { Application, ExternalContext } from "@reboot-dev/reboot";
-import { Game } from "../../api/cheaoss/v1/game_rbt.js";
+import { Game } from "../api/cheaoss/v1/game_rbt.js";
 import { GameServicer } from "./game_servicer.js";
 import { PieceServicer, LocPieceIndexServicer } from "./piece_servicer.js";
 import { MoveServicer } from "./move_servicer.js";

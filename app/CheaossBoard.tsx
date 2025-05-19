@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useGame } from "../api/cheaoss/v1/game_rbt_react"
-import { Location, InvalidMoveError, MoveStatus } from "../api/cheaoss/v1/move_pb"
-import { Piece } from "../api/cheaoss/v1/piece_rbt_react"
+import { useGame } from "./api/cheaoss/v1/game_rbt_react"
+import { Location, InvalidMoveError, MoveStatus } from "./api/cheaoss/v1/move_pb"
+import { Piece } from "./api/cheaoss/v1/piece_rbt_react"
 
 import CheaossSquare from "./CheaossSquare";
 import { rcToLocKey, locToLocKey } from "./utils"

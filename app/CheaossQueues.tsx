@@ -1,6 +1,6 @@
 "use client";
 
-import { useGame } from "../api/cheaoss/v1/game_rbt_react"
+import { useGame } from "./api/cheaoss/v1/game_rbt_react"
 
 export default function CheaossQueues({
   gameId,

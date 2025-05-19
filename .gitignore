@@ -43,3 +43,5 @@ next-env.d.ts
 # reboot
 /.rbt/
 api/**/*.ts
+backend/api/
+app/api/
