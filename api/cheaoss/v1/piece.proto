@@ -47,6 +47,10 @@ service PieceMethods {
     rpc Remove(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.EmptyResponse) {
         option (rbt.v1alpha1.method).transaction = {};
     }
+
+    rpc RemoveNoIndexUpdate(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.EmptyResponse) {
+        option (rbt.v1alpha1.method).writer = {};
+    }
 }
 
 // Maps gameid-row-col --> pieceid
@@ -60,7 +64,8 @@ service LocPieceIndexMethods {
         option (rbt.v1alpha1.method).reader = {};
     }
 
-    rpc Set(cheaoss.v1.LocPieceIndex) returns (cheaoss.v1.EmptyResponse) {
+    // Returns the old pieceId that was there, if any
+    rpc Set(cheaoss.v1.LocPieceIndex) returns (cheaoss.v1.LocPieceIndex) {
         option (rbt.v1alpha1.method).writer = {};
     }
 

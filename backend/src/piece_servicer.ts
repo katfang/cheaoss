@@ -84,12 +84,14 @@ export class PieceServicer extends Piece.Servicer {
       throw new Piece.MovePieceAborted(check);
     } else {
       // validate with the other pieces on the board
-      const checkBoard = await validateMoveWithBoard(context, check, state , request.start, request.end);
+      // TODO(reboot-dev/reboot#28): re-enable this.
+      // const checkBoard = await validateMoveWithBoard(context, check, state , request.start, request.end);
+      const checkBoard: any = null;
       if (checkBoard instanceof InvalidMoveError) {
         throw new Piece.MovePieceAborted(checkBoard);
       } else if (typeof checkBoard === "string") {
         // remove piece if it is there
-        Piece.ref(checkBoard).remove(context);
+        await Piece.ref(checkBoard).remove(context);
       }
 
       // update the location
@@ -98,10 +100,39 @@ export class PieceServicer extends Piece.Servicer {
 
       // update the idnex
       await pieceToLocIdRef(context.stateId, request.start).clear(context);
-      await pieceToLocIdRef(context.stateId, request.end).set(
+      let oldLocInfo = await pieceToLocIdRef(context.stateId, request.end).set(
         context,
         { pieceId: context.stateId }
       );
+
+      // TODO(reboot-dev/reboot#28): this is the work around. delete this once working.
+      // these checks should be done by validateMoveWithBoard
+      // TODO: this still allows jumping bishops, rooks, queens, and is probably confused about castling.
+      switch (check as MoveValidation) {
+        case MoveValidation.CHECK_PAWN_MOVE:
+          if (oldLocInfo.pieceId) {
+            throw new Piece.MovePieceAborted(
+              new InvalidMoveError({
+                message: "Invalid pawn move. Pawns cannot move forward if another piece is there."
+              })
+            );
+          }
+          break;
+        case MoveValidation.CHECK_PAWN_CAPTURE:
+          if (!oldLocInfo.pieceId) {
+            throw new Piece.MovePieceAborted(
+              new InvalidMoveError({
+                message: "Invalid pawn move. If moving diagonally, it must capture. WARNING EN PASSANT NOT IMPLEMENTED"
+              })
+            );
+          }
+          // fall through to remove old piece
+        default:
+          if (oldLocInfo.pieceId) {
+            await Piece.ref(oldLocInfo.pieceId).removeNoIndexUpdate(context);
+          }
+      }
+
       return {};
     }
   }
@@ -115,6 +146,16 @@ export class PieceServicer extends Piece.Servicer {
     if (state.loc !== undefined) {
       await pieceToLocIdRef(context.stateId, state.loc).clear(context);
     }
+    state.loc = undefined;
+    return {};
+  }
+
+  async removeNoIndexUpdate(
+    context: WriterContext,
+    state: Piece.State,
+    request: EmptyRequest
+  ) {
+    state.hasMoved = true;
     state.loc = undefined;
     return {};
   }
@@ -396,8 +437,11 @@ export class LocPieceIndexServicer extends LocPieceIndex.Servicer {
     state: LocPieceIndex.State,
     request: LocPieceIndex.State,
   ) {
+    let oldPieceId = state.pieceId;
     state.pieceId = request.pieceId;
-    return {};
+    return {
+      pieceId: oldPieceId
+    };
   }
 
   async clear(
