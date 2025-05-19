@@ -13,7 +13,7 @@ import {
   PieceType,
 } from "../api/cheaoss/v1/piece_rbt.js"
 
-import { EmptyRequest, EmptyResponse } from "../api/cheaoss/v1/util_pb.js"
+import { EmptyRequest } from "../api/cheaoss/v1/util_pb.js"
 import { Team } from "../api/cheaoss/v1/cheaoss_pb.js";
 import { errors_pb } from "@reboot-dev/reboot-api";
 
@@ -79,16 +79,12 @@ export class PieceServicer extends Piece.Servicer {
       );
     }
 
-    console.log("!!! Before validate movement pattern");
     const check = validateMovementPattern(state, request.start, request.end);
-    console.log("!!! After validate movement pattern");
     if (check instanceof InvalidMoveError) {
       throw new Piece.MovePieceAborted(check);
     } else {
       // validate with the other pieces on the board
-      console.log("!!! Before validate move with board");
       const checkBoard = await validateMoveWithBoard(context, check, state , request.start, request.end);
-      console.log("!!! After validate move with board");
       if (checkBoard instanceof InvalidMoveError) {
         throw new Piece.MovePieceAborted(checkBoard);
       } else if (typeof checkBoard === "string") {
@@ -102,12 +98,10 @@ export class PieceServicer extends Piece.Servicer {
 
       // update the idnex
       await pieceToLocIdRef(context.stateId, request.start).clear(context);
-      console.log("!!! 2", context.stateId, request.end);
       await pieceToLocIdRef(context.stateId, request.end).set(
         context,
         { pieceId: context.stateId }
       );
-      console.log("!!! 3");
       return {};
     }
   }
@@ -362,7 +356,6 @@ function pieceToLocIdRef(pieceId: string, loc: Location) {
   // clean abstraction wise, I hate the string-split, but it will in fact get us the game id
   let gameId = pieceId.split("-", 1)[0];
   let locId = `${gameId}-${loc.row}-${loc.col}`;
-  console.log("!!! 5", locId)
   return LocPieceIndex.ref(locId);
 }
 
@@ -403,7 +396,6 @@ export class LocPieceIndexServicer extends LocPieceIndex.Servicer {
     state: LocPieceIndex.State,
     request: LocPieceIndex.State,
   ) {
-    console.log("!!! 4");
     state.pieceId = request.pieceId;
     return {};
   }

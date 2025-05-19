@@ -18,7 +18,6 @@ import {
 } from "../api/cheaoss/v1/move_rbt.js"
 
 import {
-  LocPieceIndex,
   Piece,
   PieceType,
 } from "../api/cheaoss/v1/piece_rbt.js"
