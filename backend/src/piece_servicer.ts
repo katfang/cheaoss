@@ -153,7 +153,7 @@ export class PieceServicer extends Piece.Servicer {
  *  3. null -- the piece is free to move there; there is nothing to capture
  */
 async function validateMoveWithBoard(
-  context: ReaderContext|WriterContext|TransactionContext,
+  context: TransactionContext, // TODO(reboot-dev/reboot#28) get needs to be a writer in order to not throw, which means calling code must be a transaction)
   validationNeeded: MoveValidation,
   piece: Piece.State,
   start: Location,
@@ -387,26 +387,24 @@ function pieceToLocIdRef(pieceId: string, loc: Location) {
 /**
  * We just have to handle this error too often for it to be littered everywhere
  * pieceId can be for any piece in the game. we just actually need the game id.
+ * TODO(reboot-dev/reboot#28) get needs to be a writer in order to not throw, which means calling code must be a transaction)
  */
 async function getPieceIdAtLocId(
-  context: ReaderContext|WriterContext|TransactionContext,
+  context: TransactionContext,
   pieceId: string,
   loc: Location
 ): Promise<string|null> {
-  try {
-    return (await pieceToLocIdRef(pieceId, loc).get(context)).pieceId;
-  } catch (e) {
-    if (e instanceof LocPieceIndex.GetAborted && e.error instanceof errors_pb.StateNotConstructed) {
-      return null;
-    }
+  let result = (await pieceToLocIdRef(pieceId, loc).get(context)).pieceId;
+  if (result === "") {
+    return null;
   }
-  return null;
+  return result;
 }
 
 
 export class LocPieceIndexServicer extends LocPieceIndex.Servicer {
   async get(
-    context: ReaderContext,
+    context: WriterContext,
     state: LocPieceIndex.State,
     request: EmptyRequest
   ) {

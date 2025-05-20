@@ -69,7 +69,8 @@ message LocPieceIndex {
 
 service LocPieceIndexMethods {
     rpc Get(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.LocPieceIndex) {
-        option (rbt.v1alpha1.method).reader = {};
+        // TODO(reboot-dev/reboot#28) Workaround for gets aborting if state is non-existent
+        option (rbt.v1alpha1.method).writer = {};
     }
 
     // Returns the old pieceId that was there, if any
