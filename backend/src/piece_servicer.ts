@@ -15,7 +15,6 @@ import {
 
 import { EmptyRequest } from "../api/cheaoss/v1/util_pb.js"
 import { Team } from "../api/cheaoss/v1/cheaoss_pb.js";
-import { errors_pb } from "@reboot-dev/reboot-api";
 import { assert } from "console";
 
 export class PieceServicer extends Piece.Servicer {
