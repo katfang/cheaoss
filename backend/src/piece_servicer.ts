@@ -403,14 +403,23 @@ function castlingRookPieceId(kingId: string, start: Location, end: Location) {
 
 
 /**
+ * @param pieceId Can be pieceId or gameId
+ */
+export function pieceToLocId(pieceId: string, row: number, col: number) {
+  let gameId = pieceId.split("-", 1)[0];
+  return `${gameId}-${row}-${col}`;
+}
+
+/**
  * PieceId can actually be any piece on the board, what we actually want is the game-id on its id.
  */
 function pieceToLocIdRef(pieceId: string, loc: Location) {
   // clean abstraction wise, I hate the string-split, but it will in fact get us the game id
   let gameId = pieceId.split("-", 1)[0];
-  let locId = `${gameId}-${loc.row}-${loc.col}`;
+  let locId = pieceToLocId(pieceId, loc.row, loc.col);
   return LocPieceIndex.ref(locId);
 }
+
 
 /**
  * We just have to handle this error too often for it to be littered everywhere

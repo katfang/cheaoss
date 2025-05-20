@@ -24,9 +24,11 @@ import {
 
 import { EmptyRequest } from "../api/cheaoss/v1/util_pb.js"
 import { Team } from "../api/cheaoss/v1/cheaoss_pb.js";
-import { validateMovementPattern } from "./piece_servicer.js";
+import { pieceToLocId, validateMovementPattern } from "./piece_servicer.js";
+import { StateTracker } from "../api/tracker/v1/state_tracker_rbt.js";
+import { LocPieceIndex } from "../api/cheaoss/v1/piece_rbt.js";
 
-const BOARD_SIZE = 1; 
+const BOARD_SIZE = 1;
 const BACK_ROW: PieceType[] = [
   PieceType.ROOK,
   PieceType.KNIGHT,
@@ -102,13 +104,32 @@ export class GameServicer extends Game.Servicer {
     state: Game.State,
     request: InitGameRequest
   ) {
+    // TODO(reboot-dev/reboot#30) workaround: would consider tearDown for its own transaction
+    // but that would case nested transaction errors, so it's just an internal method.
+    this.tearDownForInitGame(context, state, BOARD_SIZE);
+
+
     let keysList: string[][] = [];
+    let locIds: string[] = [];
     // make the new subboard
     for (let boardRow: number = 0; boardRow < BOARD_SIZE; boardRow++) {
       for (let boardCol: number = 0; boardCol < BOARD_SIZE; boardCol++) {
         keysList.push(await this.makeInitialBoardPieces(context, context.stateId, boardRow*8, boardCol*8));
+
+        for (let i = 0; i < BACK_ROW.length; i++) {
+          locIds.push(
+            pieceToLocId(context.stateId, boardRow*8, boardCol*8 + i), // white back row
+            pieceToLocId(context.stateId, boardRow*8 + 1, boardCol*8 + i), // white pawn
+            pieceToLocId(context.stateId, boardRow*8 + 8-1, boardCol*8 + i), // black back row
+            pieceToLocId(context.stateId, boardRow*8 + 8-2, boardCol*8 + i), // black pawn
+          );
+        }
       }
     }
+    await StateTracker.ref(context.stateId).track(context, {
+      key: "LocPieceIndex",
+      toTrack: locIds
+    });
 
     state.pieceIds = keysList.flat();
     state.players = {};
@@ -119,8 +140,41 @@ export class GameServicer extends Game.Servicer {
     state.outstandingPlayerMoves = {};
     state.outstandingPieceMoves = {};
 
-    // TODO: clear LocPieceIndex
-    // TODO: clear moves state
+    return {};
+  }
+
+  async tearDownForInitGame(
+    context: TransactionContext,
+    state: Game.State,
+    boardSize: number
+  ) {
+    // This would have been a separate method you could call, but because of the way StateTracker is set up,
+    // and wants to be accessed by both TearDown and InitGame, it's a helper method to avoid reboot-dev/reboot#30
+    let stateTracker = StateTracker.ref(context.stateId);
+    // Get tracked state to clear
+    let stateTracked = await stateTracker.get(context);
+    if ("LocPieceIndex" in stateTracked.tracked) {
+      let locIds = stateTracked.tracked["LocPieceIndex"].ids;
+      for (const locId of locIds) {
+        let locPieces = locId.split("-");
+        let locRow = parseInt(locPieces[1]);
+
+        // TODO(reboot-dev/reboot#30) workaround: only clear locations
+        // that are not initialized to avoid nested transaction error
+        if (locRow % 8 !== 0 && locRow % 8 !== 1 && locRow % 8 !== 7 && locRow % 7 !== 6) {
+          await LocPieceIndex.ref(locId).clear(context);
+        }
+      }
+    }
+    if ("Move" in stateTracked.tracked) {
+      let moveIds = stateTracked.tracked["Move"].ids;
+      for (const moveId of moveIds) {
+        await Move.ref(moveId).clear(context);
+      }
+    }
+
+    // Clear tracked state
+    await stateTracker.clearAll(context);
 
     return {};
   }
@@ -290,6 +344,13 @@ export class GameServicer extends Game.Servicer {
         status: MoveStatus.MOVE_QUEUED
       }
     )
+    await StateTracker.ref(context.stateId).track(
+      context,
+      {
+        key: "Move",
+        toTrack: [moveId]
+      }
+    );
 
     // update the indices
     state.outstandingPieceMoves[request.pieceId] = true;
@@ -399,7 +460,7 @@ export class GameServicer extends Game.Servicer {
       return {};
     }
 
-    await Move.ref(request.moveId).clear(context);
+    await Move.ref(request.moveId).ack(context);
     let moveIds = state.outstandingPlayerMoves[request.playerId].moveIds;
     let slice = moveIds.filter(moveId => moveId != request.moveId);
     state.outstandingPlayerMoves[request.playerId] = new ListOfMoves({ moveIds: slice });

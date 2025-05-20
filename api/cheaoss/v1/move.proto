@@ -10,7 +10,7 @@ enum MoveStatus {
     MOVE_QUEUED = 1;
     MOVE_EXECUTED = 2;
     MOVE_ERRORED = 3;
-    MOVE_CLEARED = 4;
+    MOVE_ACKED = 4;
 }
 
 message Location {
@@ -40,6 +40,10 @@ service MoveMethods {
 
     rpc Get(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.Move) {
         option (rbt.v1alpha1.method).reader = {};
+    }
+
+    rpc Ack(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.EmptyResponse) {
+        option (rbt.v1alpha1.method).writer = {};
     }
 
     rpc Clear(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.EmptyResponse) {

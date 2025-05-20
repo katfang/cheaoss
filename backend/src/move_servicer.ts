@@ -36,14 +36,29 @@ export class MoveServicer extends Move.Servicer {
     return state;
   }
 
-  async clear(
+  async ack(
     context: WriterContext,
     state: Move.State,
     request: EmptyRequest
   ) {
     state.start = undefined;
     state.end = undefined;
-    state.status = MoveStatus.MOVE_CLEARED;
+    state.status = MoveStatus.MOVE_ACKED;
+    state.error = "";
+    return {};
+  }
+
+  async clear(
+    context: WriterContext,
+    state: Move.State,
+    request: EmptyRequest
+  ) {
+    // There's no true delete, so this will have to do.
+    state.playerId = "";
+    state.pieceId = "";
+    state.start = undefined;
+    state.end = undefined;
+    state.status = MoveStatus.MOVE_UNKNOWN;
     state.error = "";
     return {};
   }
