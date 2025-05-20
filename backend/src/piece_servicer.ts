@@ -17,18 +17,6 @@ import { EmptyRequest } from "../api/cheaoss/v1/util_pb.js"
 import { Team } from "../api/cheaoss/v1/cheaoss_pb.js";
 import { errors_pb } from "@reboot-dev/reboot-api";
 
-const BOARD_SIZE = 1; 
-const BACK_ROW: PieceType[] = [
-  PieceType.ROOK,
-  PieceType.KNIGHT,
-  PieceType.BISHOP,
-  PieceType.QUEEN,
-  PieceType.KING,
-  PieceType.BISHOP,
-  PieceType.KNIGHT,
-  PieceType.ROOK
-];
-
 export class PieceServicer extends Piece.Servicer {
   async makePiece(
     context: TransactionContext,
