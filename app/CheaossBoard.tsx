@@ -35,7 +35,8 @@ export default function CheaossBoard({
             setStartLoc(null);
             setEndLoc(null);
           } else if (move.status === MoveStatus.MOVE_ERRORED) {
-            console.log(move.error);
+            alert(move.error);
+            await cheaossRef.ackMove({ moveId: moveId, playerId: playerId })
             setStartLoc(null);
             setEndLoc(null);
           }
