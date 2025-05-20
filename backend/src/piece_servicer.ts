@@ -117,8 +117,33 @@ export class PieceServicer extends Piece.Servicer {
         await Piece.ref(oldLocInfo.pieceId).removeNoIndexUpdate(context);
       }
 
+      // if castling, move the rook as well.
+      if (check === MoveValidation.CHECK_KING_CASTLE) {
+        let rookPieceId = castlingRookPieceId(context.stateId, request.start, request.end);
+        let moveDir = Math.sign(request.end.col - request.start.col);
+        await Piece.ref(rookPieceId).movePieceInternal(context, {
+          row: request.end.row,
+          col: request.end.col + moveDir
+        });
+      }
+
       return {};
     }
+  }
+
+  async movePieceInternal(
+    context: TransactionContext,
+    state: Piece.State,
+    request: Location
+  ) {
+    // Internal move method for castling.
+    state.hasMoved = true;
+    if (state.loc !== undefined) {
+      await pieceToLocIdRef(context.stateId, state.loc).clear(context);
+    }
+    await pieceToLocIdRef(context.stateId, request).set(context, { pieceId: context.stateId });
+    state.loc = request;
+    return {};
   }
 
   async remove(
@@ -220,9 +245,8 @@ async function validateMoveWithBoard(
       }
 
     case MoveValidation.CHECK_KING_CASTLE:
-      let rookPieceId = context.stateId.slice(0, -1);
-      let colDiff = end.col - start.col;
-      rookPieceId += (colDiff > 0) ? "7" : "0";
+      let rookPieceId = castlingRookPieceId(context.stateId, start, end);
+      let moveDir = Math.sign(end.col - start.col);
       let rookPiece = await Piece.ref(rookPieceId).piece(context);
       if (rookPiece.hasMoved || rookPiece.loc === undefined) {
         return new InvalidMoveError({
@@ -232,7 +256,7 @@ async function validateMoveWithBoard(
 
       // otherwise check the pieces in between -- this is dependent on rook position, not king.
       let endCheckLoc = rookPiece.loc;
-      endCheckLoc.col -= Math.sign(colDiff);
+      endCheckLoc.col -= moveDir;
 
       // otherwise, check the spaces in between
       let locCheckCastle = await checkClear(endCheckLoc); 
@@ -327,7 +351,6 @@ export function validateMovementPattern(piece: Piece.State, start: Location, end
       });
 
     case PieceType.ROOK:
-      // TODO: castling
       if (isOrthogonalMove(rowDiff, colDiff)) {
         return MoveValidation.CHECK_CLEAR_PATH;
       }
@@ -346,7 +369,6 @@ export function validateMovementPattern(piece: Piece.State, start: Location, end
       });
 
     case PieceType.KING:
-      // TODO: castling
       if (Math.abs(rowDiff) <= 1 && Math.abs(colDiff) <= 1) {
         return MoveValidation.CHECK_FINAL_SQUARE_CAPTURE;
       } else if (!piece.hasMoved && Math.abs(colDiff) === 2 && rowDiff === 0) {
@@ -368,11 +390,13 @@ function isDiagMove(rowDiff: number, colDiff: number): boolean {
 function isOrthogonalMove(rowDiff: number, colDiff: number): boolean {
   return rowDiff === 0 || colDiff ===0;
 }
-
-export function validateChessMove(piece: Piece.State, end: Location, context?: ReaderContext): InvalidMoveError|null {
-
-  return null;
+function castlingRookPieceId(kingId: string, start: Location, end: Location) {
+  let rookPieceId = kingId.slice(0, -1);
+  let colDiff = end.col - start.col;
+  rookPieceId += (colDiff > 0) ? "7" : "0";
+  return rookPieceId;
 }
+
 
 /**
  * PieceId can actually be any piece on the board, what we actually want is the game-id on its id.
