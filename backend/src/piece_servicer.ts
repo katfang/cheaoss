@@ -45,6 +45,28 @@ export class PieceServicer extends Piece.Servicer {
     return state;
   }
 
+  async movePieceWorkaround(
+    context: TransactionContext,
+    state: Piece.State,
+    request: MoveRequest
+  ) {
+    try {
+      await this.movePiece(context, state, request);
+    } catch (e) {
+      // an invalid move, swallow it.
+      if (e instanceof Piece.MovePieceAborted) {
+        if (e.error instanceof InvalidMoveError) {
+          return {
+            invalidMove: e.error
+          }
+        }
+      }
+      // wasn't the error we were expecting, throw it.
+      throw e;
+    }
+    return {};
+  }
+
   async movePiece(
     context: TransactionContext,
     state: Piece.State,
@@ -72,9 +94,7 @@ export class PieceServicer extends Piece.Servicer {
       throw new Piece.MovePieceAborted(check);
     } else {
       // validate with the other pieces on the board
-      // TODO(reboot-dev/reboot#28): re-enable this.
-      // const checkBoard = await validateMoveWithBoard(context, check, state , request.start, request.end);
-      const checkBoard: any = null;
+      const checkBoard = await validateMoveWithBoard(context, check, state , request.start, request.end);
       if (checkBoard instanceof InvalidMoveError) {
         throw new Piece.MovePieceAborted(checkBoard);
       } else if (typeof checkBoard === "string") {
@@ -86,39 +106,15 @@ export class PieceServicer extends Piece.Servicer {
       state.loc = request.end;
       state.hasMoved = true;
 
-      // update the idnex
+      // update the index
       await pieceToLocIdRef(context.stateId, request.start).clear(context);
       let oldLocInfo = await pieceToLocIdRef(context.stateId, request.end).set(
         context,
         { pieceId: context.stateId }
       );
 
-      // TODO(reboot-dev/reboot#28): this is the work around. delete this once working.
-      // these checks should be done by validateMoveWithBoard
-      // TODO: this still allows jumping bishops, rooks, queens, and is probably confused about castling.
-      switch (check as MoveValidation) {
-        case MoveValidation.CHECK_PAWN_MOVE:
-          if (oldLocInfo.pieceId) {
-            throw new Piece.MovePieceAborted(
-              new InvalidMoveError({
-                message: "Invalid pawn move. Pawns cannot move forward if another piece is there."
-              })
-            );
-          }
-          break;
-        case MoveValidation.CHECK_PAWN_CAPTURE:
-          if (!oldLocInfo.pieceId) {
-            throw new Piece.MovePieceAborted(
-              new InvalidMoveError({
-                message: "Invalid pawn move. If moving diagonally, it must capture. WARNING EN PASSANT NOT IMPLEMENTED"
-              })
-            );
-          }
-          // fall through to remove old piece
-        default:
-          if (oldLocInfo.pieceId) {
-            await Piece.ref(oldLocInfo.pieceId).removeNoIndexUpdate(context);
-          }
+      if (oldLocInfo.pieceId) {
+        await Piece.ref(oldLocInfo.pieceId).removeNoIndexUpdate(context);
       }
 
       return {};

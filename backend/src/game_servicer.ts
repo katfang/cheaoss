@@ -319,37 +319,13 @@ export class GameServicer extends Game.Servicer {
 
     // take the move and make it
     let move = queue.shift();
-    let moveSucceded = false;
     if (move === undefined) { return {}; } // not possible since length > 0, but making the wiggly lines happy
-    try {
-      await Piece.ref(move.pieceId).idempotently().movePiece(context, move);
-      moveSucceded = true;
-    } catch (e) {
-      let handled = false;
-      if (e instanceof Piece.MovePieceAborted) {
-        // Move failed for some reason, remove it from indices
-        if (e.error instanceof InvalidMoveError) {
-          delete state.outstandingPieceMoves[move.pieceId];
-          await Move.ref(`${move.playerId}-${move.pieceId}`)
-            .idempotently()
-            .setStatus(
-              context,
-              {
-                status: MoveStatus.MOVE_ERRORED,
-                error: e.error.message
-              }
-            );
-          handled = true;
-        }
-      }
-      if (!handled) {
-        console.error("unhandled error in runQueue", e);
-        throw e;
-      }
-    }
+
+    // TODO(reboot-dev/reboot#28): workaround for throwing errors on invalid chess moves
+    let moveResult = await Piece.ref(move.pieceId).idempotently().movePieceWorkaround(context, move);
 
     // if the move succeeds, change which team gets to play, and mark move as executed.
-    if (moveSucceded) {
+    if (moveResult.invalidMove === undefined) {
       // flip the team who can play
       state.nextTeamToMove = flipTeam(state.nextTeamToMove);
 
@@ -359,7 +335,21 @@ export class GameServicer extends Game.Servicer {
       await Move.ref(`${move.playerId}-${move.pieceId}`)
         .idempotently()
         .setStatus(context, { status: MoveStatus.MOVE_EXECUTED });
+
+    } else {
+      // invalid chess move, delete the outstanding move and mark as error
+      delete state.outstandingPieceMoves[move.pieceId];
+      await Move.ref(`${move.playerId}-${move.pieceId}`)
+        .idempotently()
+        .setStatus(
+          context,
+          {
+            status: MoveStatus.MOVE_ERRORED,
+            error: moveResult.invalidMove.message
+          }
+        );
     }
+
 
     // check if there's more moves to run, if so, run the queue in half a second
     const otherQueue = (state.nextTeamToMove === Team.WHITE) ? state.whiteMovesQueue : state.blackMovesQueue;
