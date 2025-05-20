@@ -16,6 +16,7 @@ import {
 import { EmptyRequest } from "../api/cheaoss/v1/util_pb.js"
 import { Team } from "../api/cheaoss/v1/cheaoss_pb.js";
 import { errors_pb } from "@reboot-dev/reboot-api";
+import { assert } from "console";
 
 export class PieceServicer extends Piece.Servicer {
   async makePiece(
@@ -115,35 +116,37 @@ export class PieceServicer extends Piece.Servicer {
 
       if (oldLocInfo.pieceId) {
         await Piece.ref(oldLocInfo.pieceId).removeNoIndexUpdate(context);
+        // don't need to update index b/c we've put a new piece into that location
       }
 
       // if castling, move the rook as well.
       if (check === MoveValidation.CHECK_KING_CASTLE) {
         let rookPieceId = castlingRookPieceId(context.stateId, request.start, request.end);
         let moveDir = Math.sign(request.end.col - request.start.col);
-        await Piece.ref(rookPieceId).movePieceInternal(context, {
+        let newRookLoc = new Location({
           row: request.end.row,
-          col: request.end.col + moveDir
+          col: request.end.col - moveDir
         });
+        let oldRookLoc = await Piece.ref(rookPieceId).movePieceNoIndexUpdate(context, newRookLoc);
+        await pieceToLocIdRef(rookPieceId, oldRookLoc).clear(context);
+        await pieceToLocIdRef(rookPieceId, newRookLoc).set(context, { pieceId: rookPieceId });
       }
 
       return {};
     }
   }
 
-  async movePieceInternal(
-    context: TransactionContext,
+  async movePieceNoIndexUpdate(
+    context: WriterContext,
     state: Piece.State,
     request: Location
   ) {
     // Internal move method for castling.
+    assert(state.loc !== undefined);
     state.hasMoved = true;
-    if (state.loc !== undefined) {
-      await pieceToLocIdRef(context.stateId, state.loc).clear(context);
-    }
-    await pieceToLocIdRef(context.stateId, request).set(context, { pieceId: context.stateId });
+    let oldLoc = state.loc;
     state.loc = request;
-    return {};
+    return oldLoc!; // true b/c assertion
   }
 
   async remove(
@@ -164,9 +167,11 @@ export class PieceServicer extends Piece.Servicer {
     state: Piece.State,
     request: EmptyRequest
   ) {
+    assert(state.loc !== undefined);
     state.hasMoved = true;
+    let oldLoc = state.loc;
     state.loc = undefined;
-    return {};
+    return oldLoc!; // true b/c assertion
   }
 }
 

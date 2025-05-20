@@ -48,15 +48,15 @@ service PieceMethods {
         };
     }
 
-    rpc MovePieceInternal(cheaoss.v1.Location) returns (cheaoss.v1.EmptyResponse) {
-        option (rbt.v1alpha1.method).transaction = {};
-    }
-
     rpc Remove(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.EmptyResponse) {
         option (rbt.v1alpha1.method).transaction = {};
     }
 
-    rpc RemoveNoIndexUpdate(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.EmptyResponse) {
+    rpc MovePieceNoIndexUpdate(cheaoss.v1.Location) returns (cheaoss.v1.Location) {
+        option (rbt.v1alpha1.method).writer = {};
+    }
+
+    rpc RemoveNoIndexUpdate(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.Location) {
         option (rbt.v1alpha1.method).writer = {};
     }
 }
