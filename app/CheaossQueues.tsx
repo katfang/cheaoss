@@ -1,6 +1,7 @@
 "use client";
 
 import { useGame } from "./api/cheaoss/v1/game_rbt_react"
+import { MoveCannotBeCanceledError } from "./api/cheaoss/v1/move_rbt_react";
 
 export default function CheaossQueues({
   gameId,
@@ -17,13 +18,21 @@ export default function CheaossQueues({
     return "still loading";
   }
 
+  async function cancelMove(moveId: string) {
+    const { aborted } = await cheaossRef.cancelMove({ moveId: moveId });
+    if (aborted?.error instanceof MoveCannotBeCanceledError) {
+      alert(aborted.error.message);
+    }
+  }
+
   let whiteMoves = [];
   for (let move of queues.response.whiteMovesQueue) {
     whiteMoves.push(
-      <li key={move.playerId}>
+      <li key={move.playerId + "-" + move.pieceId}>
         {move.playerId} -
         ({move.start?.row}, {move.start?.col}) -
         ({move.end?.row} , {move.end?.col})
+        [<a href="#" onClick={() => cancelMove(move.playerId + "-" + move.pieceId)}>Cancel</a>]
       </li>
     )
   }

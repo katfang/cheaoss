@@ -30,7 +30,7 @@ export default function CheaossBoard({
       }
       if (Object.keys(outstandingMoves.response.moves).length > 0) {
         for (const [moveId, move] of Object.entries(outstandingMoves.response.moves)) {
-          if (move.status === MoveStatus.MOVE_EXECUTED) {
+          if (move.status === MoveStatus.MOVE_EXECUTED || move.status === MoveStatus.MOVE_CANCELED) {
             await cheaossRef.ackMove({ moveId: moveId, playerId: playerId })
             setStartLoc(null);
             setEndLoc(null);
