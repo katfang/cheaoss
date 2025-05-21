@@ -403,10 +403,8 @@ export class GameServicer extends Game.Servicer {
     let playerId = move.playerId;
     let pieceId = move.pieceId;
 
-    // remove from player, piece outstanding moves
-    let moveIds = state.outstandingPlayerMoves[playerId].moveIds;
-    let slice = moveIds.filter(moveId => moveId !== request.moveId);
-    state.outstandingPlayerMoves[playerId] = new ListOfMoves({ moveIds: slice });
+    // remove from piece outstanding moves
+    // leave in player outstanding moves for player to ack
     delete state.outstandingPieceMoves[pieceId];
 
     // remove from queue
@@ -503,7 +501,7 @@ export class GameServicer extends Game.Servicer {
     state: Game.State,
     request: GetOutstandingMovesRequest
   ) {
-    let moves: { [id: string ]: Move }= {};
+    let moves: { [id: string ]: Move } = {};
     if (request.playerId in state.outstandingPlayerMoves) {
       let moveIds = state.outstandingPlayerMoves[request.playerId].moveIds;
       // collect all the moves
