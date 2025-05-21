@@ -37,6 +37,7 @@ service GameMethods {
         option (rbt.v1alpha1.method).reader = {};
     }
 
+    // queue a move up for the player
     rpc QueueMove(cheaoss.v1.MoveRequest) returns (cheaoss.v1.QueueMoveResponse) {
         option (rbt.v1alpha1.method) = {
             transaction: {},
@@ -44,18 +45,29 @@ service GameMethods {
         };
     }
 
+    rpc CancelMove(cheaoss.v1.CancelMoveRequest) returns (cheaoss.v1.EmptyResponse) {
+        option (rbt.v1alpha1.method) = {
+            transaction: {},
+            errors: [ "cheaoss.v1.MoveCannotBeCanceledError" ],
+        };
+    }
+
+    // run the queue to make moves
     rpc RunQueue(cheaoss.v1.EmptyRequest) returns (cheaoss.v1.EmptyResponse) {
         option (rbt.v1alpha1.method).transaction = {};
     }
 
+    // get the queues
     rpc Queues(cheaoss.v1.EmptyRequest) returns (QueuesResponse) {
         option (rbt.v1alpha1.method).reader = {};
     }
 
+    // for a given player, return the moves they have
     rpc GetOutstandingMoves(GetOutstandingMovesRequest) returns (GetOutstandingMovesResponse) {
         option (rbt.v1alpha1.method).reader = {};
     }
 
+    // player acknowledges a move
     rpc AckMove(AckMoveRequest) returns (cheaoss.v1.EmptyResponse) {
         option (rbt.v1alpha1.method).transaction = {};
     }
@@ -76,6 +88,10 @@ message BoardPiecesResponse {
 }
 
 message QueueMoveResponse {
+    string move_id = 1;
+}
+
+message CancelMoveRequest {
     string move_id = 1;
 }
 

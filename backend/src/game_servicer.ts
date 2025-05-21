@@ -4,6 +4,7 @@ import {
   AckMoveRequest,
   AssignTeamRequest,
   BoardPiecesResponse,
+  CancelMoveRequest,
   Game,
   GetOutstandingMovesRequest,
   InitGameRequest,
@@ -13,6 +14,7 @@ import {
 import {
   InvalidMoveError,
   Move,
+  MoveCannotBeCanceledError,
   MoveRequest,
   MoveStatus
 } from "../api/cheaoss/v1/move_rbt.js"
@@ -27,6 +29,7 @@ import { Team } from "../api/cheaoss/v1/cheaoss_pb.js";
 import { pieceToLocId, validateMovementPattern } from "./piece_servicer.js";
 import { StateTracker } from "../api/tracker/v1/state_tracker_rbt.js";
 import { LocPieceIndex } from "../api/cheaoss/v1/piece_rbt.js";
+import { errors_pb } from "@reboot-dev/reboot-api";
 
 const BOARD_SIZE = 1;
 const BACK_ROW: PieceType[] = [
@@ -326,12 +329,6 @@ export class GameServicer extends Game.Servicer {
       }
     }
 
-    if (state.players[request.playerId] == Team.WHITE) {
-      state.whiteMovesQueue.push(request);
-    } else if (state.players[request.playerId] == Team.BLACK) {
-      state.blackMovesQueue.push(request);
-    }
-
     // store the move
     let moveId = `${request.playerId}-${request.pieceId}`;
     await Move.ref(moveId).store(
@@ -352,6 +349,14 @@ export class GameServicer extends Game.Servicer {
       }
     );
 
+    // queue the move
+    if (state.players[request.playerId] == Team.WHITE) {
+      state.whiteMovesQueue.push(request);
+    } else if (state.players[request.playerId] == Team.BLACK) {
+      state.blackMovesQueue.push(request);
+    }
+
+
     // update the indices
     state.outstandingPieceMoves[request.pieceId] = true;
     if (request.playerId in state.outstandingPlayerMoves) {
@@ -363,6 +368,65 @@ export class GameServicer extends Game.Servicer {
     await this.ref().schedule().runQueue(context);
 
     return { moveId: moveId };
+  }
+
+  async cancelMove(
+    context: TransactionContext,
+    state: Game.State,
+    request: CancelMoveRequest
+  ) {
+    // TODO: check you are the player who made the move
+    let move;
+    try {
+      move = await Move.ref(request.moveId).get(context);
+    } catch (e) {
+      if (e instanceof Move.GetAborted && e.error instanceof errors_pb.StateNotConstructed) {
+        throw new Game.CancelMoveAborted(
+          new MoveCannotBeCanceledError({
+            message: "No such move in the system."
+          })
+        );
+      }
+      // dunno this error, throw it.
+      throw e;
+    }
+
+    if (move.status !== MoveStatus.MOVE_QUEUED) {
+      throw new Game.CancelMoveAborted(
+        new MoveCannotBeCanceledError({
+          message: `Move is in state ${MoveStatus[move.status]}. Cannot be canceled.`
+        })
+      );
+    }
+
+    // get the associated player, piece
+    let playerId = move.playerId;
+    let pieceId = move.pieceId;
+
+    // remove from player, piece outstanding moves
+    let moveIds = state.outstandingPlayerMoves[playerId].moveIds;
+    let slice = moveIds.filter(moveId => moveId !== request.moveId);
+    state.outstandingPlayerMoves[playerId] = new ListOfMoves({ moveIds: slice });
+    delete state.outstandingPieceMoves[pieceId];
+
+    // remove from queue
+    let team = state.players[playerId];
+    if (team === Team.WHITE) {
+      state.whiteMovesQueue = state.whiteMovesQueue.filter(qMove =>
+        qMove.playerId !== playerId || qMove.pieceId !== pieceId
+      );
+    } else {
+      state.blackMovesQueue = state.blackMovesQueue.filter(qMove =>
+        qMove.playerId !== playerId || qMove.pieceId !== pieceId
+      );
+    }
+
+    // mark move as canceled
+    await Move.ref(request.moveId).setStatus(context, {
+      status: MoveStatus.MOVE_CANCELED,
+    });
+
+    return {};
   }
 
   async runQueue(
@@ -462,7 +526,7 @@ export class GameServicer extends Game.Servicer {
 
     await Move.ref(request.moveId).ack(context);
     let moveIds = state.outstandingPlayerMoves[request.playerId].moveIds;
-    let slice = moveIds.filter(moveId => moveId != request.moveId);
+    let slice = moveIds.filter(moveId => moveId !== request.moveId);
     state.outstandingPlayerMoves[request.playerId] = new ListOfMoves({ moveIds: slice });
     return {};
   }

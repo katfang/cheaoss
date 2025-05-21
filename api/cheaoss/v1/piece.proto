@@ -17,6 +17,9 @@ enum PieceType {
     KING = 6;
 }
 
+// piece id prefix: {game_id}-{team}-{subboard_bottom_row[global coord]}-{subboard_left_col[global coord]}-
+// piece id pawn: p{starting_col[subboard]}
+// piece id non-pawn: {starting_col[subboard]}
 message Piece {
     option (rbt.v1alpha1.state) = {};
     cheaoss.v1.Team team = 1;

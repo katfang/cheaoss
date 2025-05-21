@@ -16,6 +16,7 @@ import {
 import { EmptyRequest } from "../api/cheaoss/v1/util_pb.js"
 import { Team } from "../api/cheaoss/v1/cheaoss_pb.js";
 import { assert } from "console";
+import { StateTracker } from "../api/tracker/v1/state_tracker_rbt.js";
 
 export class PieceServicer extends Piece.Servicer {
   async makePiece(
@@ -108,14 +109,26 @@ export class PieceServicer extends Piece.Servicer {
 
       // update the index
       await pieceToLocIdRef(context.stateId, request.start).clear(context);
-      let oldLocInfo = await pieceToLocIdRef(context.stateId, request.end).set(
+      let newLocId = pieceToLocId(context.stateId, request.end.row, request.end.col);
+      let oldPieceAtLoc = await LocPieceIndex.ref(newLocId).set(
         context,
         { pieceId: context.stateId }
       );
 
-      if (oldLocInfo.pieceId) {
-        await Piece.ref(oldLocInfo.pieceId).removeNoIndexUpdate(context);
+      if (oldPieceAtLoc.pieceId) {
         // don't need to update index b/c we've put a new piece into that location
+        // but we do want to remove location info on the removed piece itself.
+        await Piece.ref(oldPieceAtLoc.pieceId).removeNoIndexUpdate(context);
+      } {
+        // if there wasn't a piece at the location before, then we might not have seen it before. StateTracker it.
+        await StateTracker.ref(pieceToGameId(context.stateId)).track(
+          context,
+          {
+            key: "LocPieceIndex",
+            toTrack: [newLocId]
+
+          }
+        );
       }
 
       // if castling, move the rook as well.
@@ -263,7 +276,7 @@ async function validateMoveWithBoard(
       endCheckLoc.col -= moveDir;
 
       // otherwise, check the spaces in between
-      let locCheckCastle = await checkClear(endCheckLoc); 
+      let locCheckCastle = await checkClear(endCheckLoc);
       if (locCheckCastle !== null) {
         return new InvalidMoveError({
           message: "Invalid castle. Cannot castle when there are pieces between king and rook."
@@ -401,13 +414,15 @@ function castlingRookPieceId(kingId: string, start: Location, end: Location) {
   return rookPieceId;
 }
 
+export function pieceToGameId(pieceId: string) {
+  return pieceId.split("-", 1)[0];
+}
 
 /**
  * @param pieceId Can be pieceId or gameId
  */
 export function pieceToLocId(pieceId: string, row: number, col: number) {
-  let gameId = pieceId.split("-", 1)[0];
-  return `${gameId}-${row}-${col}`;
+  return `${pieceToGameId(pieceId)}-${row}-${col}`;
 }
 
 /**
@@ -415,7 +430,6 @@ export function pieceToLocId(pieceId: string, row: number, col: number) {
  */
 function pieceToLocIdRef(pieceId: string, loc: Location) {
   // clean abstraction wise, I hate the string-split, but it will in fact get us the game id
-  let gameId = pieceId.split("-", 1)[0];
   let locId = pieceToLocId(pieceId, loc.row, loc.col);
   return LocPieceIndex.ref(locId);
 }
