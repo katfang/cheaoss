@@ -44,6 +44,7 @@ export default function CheaossQueues({
         {move.playerId} -
         ({move.start?.row}, {move.start?.col}) -
         ({move.end?.row} , {move.end?.col})
+        [<a href="#" onClick={() => cancelMove(move.playerId + "-" + move.pieceId)}>Cancel</a>]
       </li>
     )
   }
