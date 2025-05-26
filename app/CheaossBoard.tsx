@@ -18,25 +18,28 @@ export default function CheaossBoard({
   // TODO: probably pass from above?
   const cheaossRef = useGame({ id: gameId });
   const boardPieces = cheaossRef.useBoardPieces();
-  const outstandingMoves = cheaossRef.useGetOutstandingMoves({ playerId: playerId });
+  const outstandingMoves = cheaossRef.useGetOutstandingMoves({ playerId });
   const [startLoc, setStartLoc] = useState<Location | null>(null);
   const [endLoc, setEndLoc] = useState<Location | null>(null);
 
   // This has to happen first due to hooks having to be run first
+  const jsonOutstandingMoves = JSON.stringify(outstandingMoves.response?.moves);
+  console.log("outstanding moves", outstandingMoves);
   useEffect(() => {
     async function ackMoves() {
+      console.log("acking moves!", outstandingMoves.response);
       if (outstandingMoves.response === undefined ) {
         return;
       }
       if (Object.keys(outstandingMoves.response.moves).length > 0) {
         for (const [moveId, move] of Object.entries(outstandingMoves.response.moves)) {
           if (move.status === MoveStatus.MOVE_EXECUTED || move.status === MoveStatus.MOVE_CANCELED) {
-            await cheaossRef.ackMove({ moveId: moveId, playerId: playerId })
+            await cheaossRef.ackMove({ moveId, playerId })
             setStartLoc(null);
             setEndLoc(null);
           } else if (move.status === MoveStatus.MOVE_ERRORED) {
             alert(move.error);
-            await cheaossRef.ackMove({ moveId: moveId, playerId: playerId })
+            await cheaossRef.ackMove({ moveId, playerId })
             setStartLoc(null);
             setEndLoc(null);
           }
@@ -44,7 +47,7 @@ export default function CheaossBoard({
       }
     }
     ackMoves();
-  }, [outstandingMoves.response]);
+  }, [jsonOutstandingMoves]);
 
   if (boardPieces.response === undefined || outstandingMoves.response === undefined) {
     return "still loading";

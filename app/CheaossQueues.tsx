@@ -25,6 +25,8 @@ export default function CheaossQueues({
     }
   }
 
+  console.log("pending cancel moves", cheaossRef.cancelMove.pending);
+
   let whiteMoves = [];
   for (let move of queues.response.whiteMovesQueue) {
     whiteMoves.push(

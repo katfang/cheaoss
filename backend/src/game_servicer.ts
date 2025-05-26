@@ -509,6 +509,7 @@ export class GameServicer extends Game.Servicer {
         moves[moveId] = await Move.ref(moveId).get(context);
       }
     }
+    console.log("!!! get outstanding moves", moves);
     return { moves: moves };
   }
 
