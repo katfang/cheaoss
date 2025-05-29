@@ -18,7 +18,6 @@ export default function CheaossBoard({
   const hasOutstandingMove = cheaossRef.useHasOutstandingMove({ playerId: playerId });
   const [startLoc, setStartLoc] = useState<Location | null>(null);
   const [endLoc, setEndLoc] = useState<Location | null>(null);
-  const [savedHasMove, setSavedHasMove] = useState(false);
 
   if (boardPieces.response === undefined || hasOutstandingMove.response === undefined) {
     return "still loading";
@@ -51,17 +50,14 @@ export default function CheaossBoard({
 
   // TODO: well this code totally borks it
   console.log("!!!", hasOutstandingMove.response.hasMove);
-  if (savedHasMove !== hasOutstandingMove.response.hasMove) {
-    setSavedHasMove(hasOutstandingMove.response.hasMove);
-    if (!hasOutstandingMove.response.hasMove) {
-      // TODO: is it possible to
-      // 1. queueMove starts
-      // 2. get hasMove = false --> clear the move visually
-      // 3. queueMove ends --> now has the outstandng move
-      // 4. get hasMove = true, but we no longer know what the state of the move is.
-      setStartLoc(null);
-      setEndLoc(null);
-    }
+  if (!hasOutstandingMove.response.hasMove) {
+    // TODO: is it possible to
+    // 1. queueMove starts
+    // 2. get hasMove = false --> clear the move visually
+    // 3. queueMove ends --> now has the outstandng move
+    // 4. get hasMove = true, but we no longer know what the state of the move is.
+    setStartLoc(null);
+    setEndLoc(null);
   }
 
   // TODO ??? is there a way of having this update by piece using usePiece, or nope, nah?
