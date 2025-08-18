@@ -1,6 +1,6 @@
-protoc api/
-protoc --nodejs=backend/api/
-protoc --react=app/api/
+generate api/
+generate --nodejs=backend/api/
+generate --react=app/api/
 
 dev run --name=cheaoss
 dev run --watch=backend/src/**/*.ts

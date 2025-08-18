@@ -21,17 +21,16 @@ import { StateTracker } from "../api/tracker/v1/state_tracker_rbt.js";
 export class PieceServicer extends Piece.Servicer {
   async makePiece(
     context: TransactionContext,
-    state: Piece.State,
     request: Piece.State
   ) {
     if (request.loc === undefined) {
       throw new Piece.MakePieceAborted(new LocationRequiredError());
     }
-    state.team = request.team;
-    state.type = request.type;
-    state.loc = request.loc;
-    state.hasMoved = false;
-    await pieceToLocIdRef(context.stateId, state.loc).set(
+    this.state.team = request.team;
+    this.state.type = request.type;
+    this.state.loc = request.loc;
+    this.state.hasMoved = false;
+    await pieceToLocIdRef(context.stateId, this.state.loc).set(
       context,
       { pieceId: context.stateId }
     );
@@ -40,19 +39,18 @@ export class PieceServicer extends Piece.Servicer {
 
   async piece(
     context: ReaderContext,
-    state: Piece.State,
     request: EmptyRequest,
   ) {
-    return state;
+    return this.state;
   }
 
   async movePieceWorkaround(
     context: TransactionContext,
-    state: Piece.State,
     request: MoveRequest
   ) {
     try {
-      await this.movePiece(context, state, request);
+      // TODO(upgrade): does this need to be done otherwise?
+      await this.movePiece(context, request);
     } catch (e) {
       // an invalid move, swallow it.
       if (e instanceof Piece.MovePieceAborted) {
@@ -70,7 +68,6 @@ export class PieceServicer extends Piece.Servicer {
 
   async movePiece(
     context: TransactionContext,
-    state: Piece.State,
     request: MoveRequest
   ) {
     // Data validation check -- should not happen since queueMove does this check before adding it to the queue.
@@ -82,7 +79,7 @@ export class PieceServicer extends Piece.Servicer {
       )
     }
     // check the piece is in the right place
-    if (state.loc?.row !== request.start.row && state.loc?.col !== request.start.col) {
+    if (this.state.loc?.row !== request.start.row && this.state.loc?.col !== request.start.col) {
       throw new Piece.MovePieceAborted(
         new InvalidMoveError({
           message: "Piece not found at starting location."
@@ -90,12 +87,12 @@ export class PieceServicer extends Piece.Servicer {
       );
     }
 
-    const check = validateMovementPattern(state, request.start, request.end);
+    const check = validateMovementPattern(this.state, request.start, request.end);
     if (check instanceof InvalidMoveError) {
       throw new Piece.MovePieceAborted(check);
     } else {
       // validate with the other pieces on the board
-      const checkBoard = await validateMoveWithBoard(context, check, state , request.start, request.end);
+      const checkBoard = await validateMoveWithBoard(context, check, this.state , request.start, request.end);
       if (checkBoard instanceof InvalidMoveError) {
         throw new Piece.MovePieceAborted(checkBoard);
       } else if (typeof checkBoard === "string") {
@@ -104,8 +101,8 @@ export class PieceServicer extends Piece.Servicer {
       }
 
       // update the location
-      state.loc = request.end;
-      state.hasMoved = true;
+      this.state.loc = request.end;
+      this.state.hasMoved = true;
 
       // update the index
       await pieceToLocIdRef(context.stateId, request.start).clear(context);
@@ -150,39 +147,36 @@ export class PieceServicer extends Piece.Servicer {
 
   async movePieceNoIndexUpdate(
     context: WriterContext,
-    state: Piece.State,
     request: Location
   ) {
     // Internal move method for castling.
-    assert(state.loc !== undefined);
-    state.hasMoved = true;
-    let oldLoc = state.loc;
-    state.loc = request;
+    assert(this.state.loc !== undefined);
+    this.state.hasMoved = true;
+    let oldLoc = this.state.loc;
+    this.state.loc = request;
     return oldLoc!; // true b/c assertion
   }
 
   async remove(
     context: TransactionContext,
-    state: Piece.State,
     request: EmptyRequest
   ) {
-    state.hasMoved = true;
-    if (state.loc !== undefined) {
-      await pieceToLocIdRef(context.stateId, state.loc).clear(context);
+    this.state.hasMoved = true;
+    if (this.state.loc !== undefined) {
+      await pieceToLocIdRef(context.stateId, this.state.loc).clear(context);
     }
-    state.loc = undefined;
+    this.state.loc = undefined;
     return {};
   }
 
   async removeNoIndexUpdate(
     context: WriterContext,
-    state: Piece.State,
     request: EmptyRequest
   ) {
-    assert(state.loc !== undefined);
-    state.hasMoved = true;
-    let oldLoc = state.loc;
-    state.loc = undefined;
+    assert(this.state.loc !== undefined);
+    this.state.hasMoved = true;
+    let oldLoc = this.state.loc;
+    this.state.loc = undefined;
     return oldLoc!; // true b/c assertion
   }
 }
@@ -456,22 +450,20 @@ async function getPieceIdAtLocId(
 export class LocPieceIndexServicer extends LocPieceIndex.Servicer {
   async get(
     context: WriterContext,
-    state: LocPieceIndex.State,
     request: EmptyRequest
   ) {
     // Two possible responses for there not being an object:
     // * an error from reboot saying nothing at that index
     // * empty string for pieceId
-    return state;
+    return this.state;
   }
 
   async set(
     context: WriterContext,
-    state: LocPieceIndex.State,
     request: LocPieceIndex.State,
   ) {
-    let oldPieceId = state.pieceId;
-    state.pieceId = request.pieceId;
+    let oldPieceId = this.state.pieceId;
+    this.state.pieceId = request.pieceId;
     return {
       pieceId: oldPieceId
     };
@@ -479,11 +471,10 @@ export class LocPieceIndexServicer extends LocPieceIndex.Servicer {
 
   async clear(
     context: WriterContext,
-    state: LocPieceIndex.State,
     request: EmptyRequest
   ) {
     // !!! Reboot has no real delete, so the best we can do is set it to empty string
-    state.pieceId = "";
+    this.state.pieceId = "";
     return {};
   }
 }

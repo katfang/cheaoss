@@ -86,30 +86,29 @@ export class GameServicer extends Game.Servicer {
 
   async assignTeam(
     context: WriterContext,
-    state: Game.State,
     request: AssignTeamRequest
   ) {
     // if we've seen the player before, return their existing team
-    if (state.players[request.playerId] !== undefined) {
-      return { team: state.players[request.playerId] };
+    if (this.state.players[request.playerId] !== undefined) {
+      return { team: this.state.players[request.playerId] };
     }
 
     // assume that init game has been run
     // TODO: possibly should throw an error if we ever have unknown team
-    const team = state.nextTeamAssignment;
-    state.nextTeamAssignment = flipTeam(team);
-    state.players[request.playerId] = team;
+    const team = this.state.nextTeamAssignment;
+    this.state.nextTeamAssignment = flipTeam(team);
+    this.state.players[request.playerId] = team;
     return { team: team };
   }
 
   async initGame(
     context: TransactionContext,
-    state: Game.State,
     request: InitGameRequest
   ) {
     // TODO(reboot-dev/reboot#30) workaround: would consider tearDown for its own transaction
     // but that would case nested transaction errors, so it's just an internal method.
-    this.tearDownForInitGame(context, state, BOARD_SIZE);
+    // TODO(upgrade)
+    this.tearDownForInitGame(context, BOARD_SIZE);
 
 
     let keysList: string[][] = [];
@@ -134,21 +133,20 @@ export class GameServicer extends Game.Servicer {
       toTrack: locIds
     });
 
-    state.pieceIds = keysList.flat();
-    state.players = {};
-    state.nextTeamAssignment = Team.WHITE;
-    state.nextTeamToMove = Team.WHITE;
-    state.whiteMovesQueue = [];
-    state.blackMovesQueue = [];
-    state.outstandingPlayerMoves = {};
-    state.outstandingPieceMoves = {};
+    this.state.pieceIds = keysList.flat();
+    this.state.players = {};
+    this.state.nextTeamAssignment = Team.WHITE;
+    this.state.nextTeamToMove = Team.WHITE;
+    this.state.whiteMovesQueue = [];
+    this.state.blackMovesQueue = [];
+    this.state.outstandingPlayerMoves = {};
+    this.state.outstandingPieceMoves = {};
 
     return {};
   }
 
   async tearDownForInitGame(
     context: TransactionContext,
-    state: Game.State,
     boardSize: number
   ) {
     // This would have been a separate method you could call, but because of the way StateTracker is set up,
@@ -247,7 +245,6 @@ export class GameServicer extends Game.Servicer {
 
   async boardPieces(
     context: ReaderContext,
-    state: Game.State,
     request: EmptyRequest
   ) {
     const response = new BoardPiecesResponse();
@@ -269,7 +266,6 @@ export class GameServicer extends Game.Servicer {
 
   async queueMove(
     context: TransactionContext,
-    state: Game.State,
     request: MoveRequest
   ) {
     let pieceRef = Piece.ref(request.pieceId);
@@ -289,7 +285,7 @@ export class GameServicer extends Game.Servicer {
     }
 
     // Outstanding moves check
-    if (request.pieceId in state.outstandingPieceMoves) {
+    if (request.pieceId in this.state.outstandingPieceMoves) {
       // Make sure each piece has one move outstanding
       throw new Game.QueueMoveAborted(
         new InvalidMoveError({
@@ -308,7 +304,7 @@ export class GameServicer extends Game.Servicer {
     }
 
     // Chess logic checks
-    if (state.players[request.playerId] !== piece.team) {
+    if (this.state.players[request.playerId] !== piece.team) {
       throw new Game.QueueMoveAborted(
         new InvalidMoveError({
           message: "You can only move your team's pieces."
@@ -350,19 +346,19 @@ export class GameServicer extends Game.Servicer {
     );
 
     // queue the move
-    if (state.players[request.playerId] == Team.WHITE) {
-      state.whiteMovesQueue.push(request);
-    } else if (state.players[request.playerId] == Team.BLACK) {
-      state.blackMovesQueue.push(request);
+    if (this.state.players[request.playerId] == Team.WHITE) {
+      this.state.whiteMovesQueue.push(request);
+    } else if (this.state.players[request.playerId] == Team.BLACK) {
+      this.state.blackMovesQueue.push(request);
     }
 
 
     // update the indices
-    state.outstandingPieceMoves[request.pieceId] = true;
-    if (request.playerId in state.outstandingPlayerMoves) {
-      state.outstandingPlayerMoves[request.playerId].moveIds.push(moveId);
+    this.state.outstandingPieceMoves[request.pieceId] = true;
+    if (request.playerId in this.state.outstandingPlayerMoves) {
+      this.state.outstandingPlayerMoves[request.playerId].moveIds.push(moveId);
     } else {
-      state.outstandingPlayerMoves[request.playerId] = new ListOfMoves({ moveIds: [moveId] });;
+      this.state.outstandingPlayerMoves[request.playerId] = new ListOfMoves({ moveIds: [moveId] });;
     }
 
     await this.ref().schedule().runQueue(context);
@@ -372,7 +368,6 @@ export class GameServicer extends Game.Servicer {
 
   async cancelMove(
     context: TransactionContext,
-    state: Game.State,
     request: CancelMoveRequest
   ) {
     // TODO: check you are the player who made the move
@@ -405,16 +400,16 @@ export class GameServicer extends Game.Servicer {
 
     // remove from piece outstanding moves
     // leave in player outstanding moves for player to ack
-    delete state.outstandingPieceMoves[pieceId];
+    delete this.state.outstandingPieceMoves[pieceId];
 
     // remove from queue
-    let team = state.players[playerId];
+    let team = this.state.players[playerId];
     if (team === Team.WHITE) {
-      state.whiteMovesQueue = state.whiteMovesQueue.filter(qMove =>
+      this.state.whiteMovesQueue = this.state.whiteMovesQueue.filter(qMove =>
         qMove.playerId !== playerId || qMove.pieceId !== pieceId
       );
     } else {
-      state.blackMovesQueue = state.blackMovesQueue.filter(qMove =>
+      this.state.blackMovesQueue = this.state.blackMovesQueue.filter(qMove =>
         qMove.playerId !== playerId || qMove.pieceId !== pieceId
       );
     }
@@ -429,11 +424,10 @@ export class GameServicer extends Game.Servicer {
 
   async runQueue(
     context: TransactionContext,
-    state: Game.State,
     request: EmptyRequest
   ) {
     // TODO: check if this works. We're trying to grab the queue
-    const queue = (state.nextTeamToMove === Team.WHITE) ? state.whiteMovesQueue : state.blackMovesQueue;
+    const queue = (this.state.nextTeamToMove === Team.WHITE) ? this.state.whiteMovesQueue : this.state.blackMovesQueue;
 
     // If there is no next move to make, get out of here
     if (queue.length === 0) {
@@ -450,18 +444,18 @@ export class GameServicer extends Game.Servicer {
     // if the move succeeds, change which team gets to play, and mark move as executed.
     if (moveResult.invalidMove === undefined) {
       // flip the team who can play
-      state.nextTeamToMove = flipTeam(state.nextTeamToMove);
+      this.state.nextTeamToMove = flipTeam(this.state.nextTeamToMove);
 
       // remove from indices
       // DO NOT remove from player index: AckMove will do that instead b/c we need to make sure the client knows the move has been executed or errored.
-      delete state.outstandingPieceMoves[move.pieceId];
+      delete this.state.outstandingPieceMoves[move.pieceId];
       await Move.ref(`${move.playerId}-${move.pieceId}`)
         .idempotently()
         .setStatus(context, { status: MoveStatus.MOVE_EXECUTED });
 
     } else {
       // invalid chess move, delete the outstanding move and mark as error
-      delete state.outstandingPieceMoves[move.pieceId];
+      delete this.state.outstandingPieceMoves[move.pieceId];
       await Move.ref(`${move.playerId}-${move.pieceId}`)
         .idempotently()
         .setStatus(
@@ -475,7 +469,7 @@ export class GameServicer extends Game.Servicer {
 
 
     // check if there's more moves to run, if so, run the queue in half a second
-    const otherQueue = (state.nextTeamToMove === Team.WHITE) ? state.whiteMovesQueue : state.blackMovesQueue;
+    const otherQueue = (this.state.nextTeamToMove === Team.WHITE) ? this.state.whiteMovesQueue : this.state.blackMovesQueue;
     if (otherQueue.length > 0) {
       await this.ref().schedule({
         when: new Date(Date.now() + 500)
@@ -487,23 +481,21 @@ export class GameServicer extends Game.Servicer {
 
   async queues(
     context: ReaderContext,
-    state: Game.State,
     request: EmptyRequest
   ) {
     return {
-      whiteMovesQueue: state.whiteMovesQueue,
-      blackMovesQueue: state.blackMovesQueue
+      whiteMovesQueue: this.state.whiteMovesQueue,
+      blackMovesQueue: this.state.blackMovesQueue
     }
   }
 
   async getOutstandingMoves(
     context: ReaderContext,
-    state: Game.State,
     request: GetOutstandingMovesRequest
   ) {
     let moves: { [id: string ]: Move } = {};
-    if (request.playerId in state.outstandingPlayerMoves) {
-      let moveIds = state.outstandingPlayerMoves[request.playerId].moveIds;
+    if (request.playerId in this.state.outstandingPlayerMoves) {
+      let moveIds = this.state.outstandingPlayerMoves[request.playerId].moveIds;
       // collect all the moves
       for (const moveId of moveIds) {
         moves[moveId] = await Move.ref(moveId).get(context);
@@ -515,18 +507,17 @@ export class GameServicer extends Game.Servicer {
 
   async ackMove(
     context: TransactionContext,
-    state: Game.State,
     request: AckMoveRequest
   ) {
-    if (!(request.playerId in state.outstandingPlayerMoves)) {
+    if (!(request.playerId in this.state.outstandingPlayerMoves)) {
       // there's no moves to acknowledge, what are we doing here.
       return {};
     }
 
     await Move.ref(request.moveId).ack(context);
-    let moveIds = state.outstandingPlayerMoves[request.playerId].moveIds;
+    let moveIds = this.state.outstandingPlayerMoves[request.playerId].moveIds;
     let slice = moveIds.filter(moveId => moveId !== request.moveId);
-    state.outstandingPlayerMoves[request.playerId] = new ListOfMoves({ moveIds: slice });
+    this.state.outstandingPlayerMoves[request.playerId] = new ListOfMoves({ moveIds: slice });
     return {};
   }
 }

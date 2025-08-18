@@ -8,7 +8,7 @@ import { StateTrackerServicer } from "./state_tracker_servicer.js";
 const initialize = async (context: ExternalContext) => {
   const game = Game.ref("singleton");
   await game
-    .unidempotently()
+    .always()
     .initGame(context);
 };
 

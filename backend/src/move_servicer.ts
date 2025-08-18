@@ -6,60 +6,55 @@ export class MoveServicer extends Move.Servicer {
 
   async store(
     context: WriterContext,
-    state: Move.State,
     request: Move.State
   ) {
-    state.playerId = request.playerId;
-    state.pieceId = request.pieceId;
-    state.start = request.start;
-    state.end = request.end;
-    state.status = request.status;
+    this.state.playerId = request.playerId;
+    this.state.pieceId = request.pieceId;
+    this.state.start = request.start;
+    this.state.end = request.end;
+    this.state.status = request.status;
     // ignores state.error because that should be set by setStatus when status = ERRORED
     return {};
   }
 
   async setStatus(
     context: WriterContext,
-    state: Move.State,
     request: SetStatusRequest
   ) {
-    state.status = request.status; 
-    state.error = request.error;
+    this.state.status = request.status;
+    this.state.error = request.error;
     return {};
-  } 
+  }
 
   async get(
     context: ReaderContext,
-    state: Move.State,
     request: EmptyRequest
   ) {
-    return state;
+    return this.state;
   }
 
   async ack(
     context: WriterContext,
-    state: Move.State,
     request: EmptyRequest
   ) {
-    state.start = undefined;
-    state.end = undefined;
-    state.status = MoveStatus.MOVE_ACKED;
-    state.error = "";
+    this.state.start = undefined;
+    this.state.end = undefined;
+    this.state.status = MoveStatus.MOVE_ACKED;
+    this.state.error = "";
     return {};
   }
 
   async clear(
     context: WriterContext,
-    state: Move.State,
     request: EmptyRequest
   ) {
     // There's no true delete, so this will have to do.
-    state.playerId = "";
-    state.pieceId = "";
-    state.start = undefined;
-    state.end = undefined;
-    state.status = MoveStatus.MOVE_UNKNOWN;
-    state.error = "";
+    this.state.playerId = "";
+    this.state.pieceId = "";
+    this.state.start = undefined;
+    this.state.end = undefined;
+    this.state.status = MoveStatus.MOVE_UNKNOWN;
+    this.state.error = "";
     return {};
   }
 
