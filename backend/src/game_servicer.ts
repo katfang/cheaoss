@@ -438,11 +438,32 @@ export class GameServicer extends Game.Servicer {
     let move = queue.shift();
     if (move === undefined) { return {}; } // not possible since length > 0, but making the wiggly lines happy
 
-    // TODO(reboot-dev/reboot#28): workaround for throwing errors on invalid chess moves
-    let moveResult = await Piece.ref(move.pieceId).idempotently().movePieceWorkaround(context, move);
+    let invalidMove = false;
+    try {
+      await Piece.ref(move.pieceId).idempotently().movePiece(context, move);
+    } catch (e) {
+      if (e instanceof Piece.MovePieceAborted && e.error instanceof InvalidMoveError) {
+        // invalid chess move, delete the outstanding move and mark as error
+        delete this.state.outstandingPieceMoves[move.pieceId];
+        await Move.ref(`${move.playerId}-${move.pieceId}`)
+          .idempotently()
+          .setStatus(
+            context,
+            {
+              status: MoveStatus.MOVE_ERRORED,
+              error: e.error.message
+            }
+          );
+          invalidMove = true;
+          console.log("errored successfully?");
+      } else {
+        // unexpected error
+        throw e;
+      }
+    }
 
     // if the move succeeds, change which team gets to play, and mark move as executed.
-    if (moveResult.invalidMove === undefined) {
+    if (!invalidMove) {
       // flip the team who can play
       this.state.nextTeamToMove = flipTeam(this.state.nextTeamToMove);
 
@@ -452,21 +473,7 @@ export class GameServicer extends Game.Servicer {
       await Move.ref(`${move.playerId}-${move.pieceId}`)
         .idempotently()
         .setStatus(context, { status: MoveStatus.MOVE_EXECUTED });
-
-    } else {
-      // invalid chess move, delete the outstanding move and mark as error
-      delete this.state.outstandingPieceMoves[move.pieceId];
-      await Move.ref(`${move.playerId}-${move.pieceId}`)
-        .idempotently()
-        .setStatus(
-          context,
-          {
-            status: MoveStatus.MOVE_ERRORED,
-            error: moveResult.invalidMove.message
-          }
-        );
     }
-
 
     // check if there's more moves to run, if so, run the queue in half a second
     const otherQueue = (this.state.nextTeamToMove === Team.WHITE) ? this.state.whiteMovesQueue : this.state.blackMovesQueue;

@@ -44,28 +44,6 @@ export class PieceServicer extends Piece.Servicer {
     return this.state;
   }
 
-  async movePieceWorkaround(
-    context: TransactionContext,
-    request: MoveRequest
-  ) {
-    try {
-      // TODO(upgrade): does this need to be done otherwise?
-      await this.movePiece(context, request);
-    } catch (e) {
-      // an invalid move, swallow it.
-      if (e instanceof Piece.MovePieceAborted) {
-        if (e.error instanceof InvalidMoveError) {
-          return {
-            invalidMove: e.error
-          }
-        }
-      }
-      // wasn't the error we were expecting, throw it.
-      throw e;
-    }
-    return {};
-  }
-
   async movePiece(
     context: TransactionContext,
     request: MoveRequest

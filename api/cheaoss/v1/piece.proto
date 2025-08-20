@@ -40,10 +40,6 @@ service PieceMethods {
         option (rbt.v1alpha1.method).reader = {};
     }
 
-    rpc MovePieceWorkaround(cheaoss.v1.MoveRequest) returns (MovePieceWorkaroundResponse) {
-        option (rbt.v1alpha1.method).transaction = {};
-    }
-
     rpc MovePiece(cheaoss.v1.MoveRequest) returns (cheaoss.v1.EmptyResponse) {
         option (rbt.v1alpha1.method) = {
             transaction: {},
