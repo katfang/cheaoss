@@ -1,4 +1,5 @@
 import { ReaderContext, TransactionContext, WriterContext } from "@reboot-dev/reboot";
+import { errors_pb } from "@reboot-dev/reboot-api";
 
 import {
   InvalidMoveError,
@@ -167,7 +168,7 @@ export class PieceServicer extends Piece.Servicer {
  *  3. null -- the piece is free to move there; there is nothing to capture
  */
 async function validateMoveWithBoard(
-  context: TransactionContext, // TODO(reboot-dev/reboot#28) get needs to be a writer in order to not throw, which means calling code must be a transaction)
+  context: ReaderContext | WriterContext | TransactionContext,
   validationNeeded: MoveValidation,
   piece: Piece.State,
   start: Location,
@@ -410,24 +411,30 @@ function pieceToLocIdRef(pieceId: string, loc: Location) {
 /**
  * We just have to handle this error too often for it to be littered everywhere
  * pieceId can be for any piece in the game. we just actually need the game id.
- * TODO(reboot-dev/reboot#28) get needs to be a writer in order to not throw, which means calling code must be a transaction)
  */
 async function getPieceIdAtLocId(
-  context: TransactionContext,
+  context: ReaderContext | WriterContext | TransactionContext,
   pieceId: string,
   loc: Location
 ): Promise<string|null> {
-  let result = (await pieceToLocIdRef(pieceId, loc).get(context)).pieceId;
-  if (result === "") {
-    return null;
+  try {
+    let result = (await pieceToLocIdRef(pieceId, loc).get(context)).pieceId;
+    if (result === "") {
+      return null;
+    }
+    return result;
+  } catch (e) {
+    if (e instanceof LocPieceIndex.GetAborted && e.error instanceof errors_pb.StateNotConstructed) {
+      return null;
+    }
+    throw e;
   }
-  return result;
 }
 
 
 export class LocPieceIndexServicer extends LocPieceIndex.Servicer {
   async get(
-    context: WriterContext,
+    context: ReaderContext,
     request: EmptyRequest
   ) {
     // Two possible responses for there not being an object:
